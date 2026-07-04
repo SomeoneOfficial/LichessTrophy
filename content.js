@@ -736,6 +736,19 @@
     delete header.dataset.injectedTeamSig;
   }
 
+  function isVisibleElement(el) {
+    if (!el) return false;
+    if (!el.isConnected) return false;
+    if (typeof el.getClientRects !== 'function') return true;
+    return el.getClientRects().length > 0;
+  }
+
+  function pickPrimaryProfileElement(elements) {
+    const visible = elements.filter((el) => isVisibleElement(el));
+    const sideMatch = visible.find((el) => el.closest('.side'));
+    return sideMatch || visible[0] || null;
+  }
+
   function syncPanel() {
     if (!panelEls.master) return;
 
@@ -1003,8 +1016,14 @@
       const elements = Array.from(document.querySelectorAll('.user-link')).filter((el) =>
         usersMatchExact(resolveUserForElement(el), currentProfileUser)
       );
+      const primaryElement = pickPrimaryProfileElement(elements);
 
-      elements.forEach((el) => {
+      if (primaryElement) {
+        elements.forEach((el) => {
+          if (el !== primaryElement) clearInjected(el);
+        });
+
+        const el = primaryElement;
         const signature = [
           player.displayName,
           player.title,
@@ -1058,7 +1077,7 @@
 
         el.dataset.injectedFor = player.id;
         el.dataset.injectedSig = signature;
-      });
+      }
     } else {
       document.querySelectorAll('.user-link').forEach((el) => {
         if (el.dataset.injectedFor) clearInjected(el);
