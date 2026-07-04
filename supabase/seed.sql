@@ -1,6 +1,6 @@
 insert into public.files (file_name, data)
 values (
-  'people.json',
+  'People.json',
   '[
     {
       "username": "Ajisland",
@@ -28,7 +28,7 @@ on conflict (file_name) do update set
 
 insert into public.files (file_name, data)
 values (
-  'teams.json',
+  'Teams.json',
   '[
     {
       "team": "the-chess-fan-club",

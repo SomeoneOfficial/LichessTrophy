@@ -19,3 +19,6 @@ When `config.json` is filled in, the extension will load:
 ## Notes
 
 - No secret keys belong in this folder or the extension bundle.
+- For GitHub auto-sync, add these repo secrets:
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
