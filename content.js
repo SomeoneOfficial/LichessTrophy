@@ -589,8 +589,7 @@
 
       link.appendChild(inner);
 
-      if (flair) flair.insertAdjacentElement('afterend', link);
-      else header.appendChild(link);
+      header.appendChild(link);
     }
 
     header.dataset.injectedTeamSig = signature;
