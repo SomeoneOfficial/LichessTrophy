@@ -25,6 +25,11 @@
     return String(value || '').trim();
   }
 
+  function parseNumber(value, fallback = null) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
   function normalizeUser(value) {
     return normalizeField(value).toLowerCase();
   }
@@ -110,13 +115,22 @@
 
     const url = normalizeField(raw.url || raw.image || raw.src || raw.trophiesUrl || raw.trophyUrl);
     if (!url) return null;
+    const clickUrl = normalizeField(raw.clickUrl || raw.click_url || raw.href || raw.link || raw.clickHref || fallbackClickHref || '/player/top/blitz') || '/player/top/blitz';
+
+    const offsetX = parseNumber(raw.offsetX ?? raw.offset_x ?? raw.x ?? raw.shiftX, 0);
+    const offsetY = parseNumber(raw.offsetY ?? raw.offset_y ?? raw.y ?? raw.shiftY, 0);
+    const scale = parseNumber(raw.scale ?? raw.size ?? raw.zoom, 1);
 
     return {
       url,
-      href: normalizeField(raw.href || raw.link || raw.clickHref || fallbackClickHref || '/player/top/blitz') || '/player/top/blitz',
+      clickUrl,
+      href: clickUrl,
       title: normalizeField(raw.title || raw.name || raw.label || 'Top Blitz Player') || 'Top Blitz Player',
       className: normalizeField(raw.className || raw.class || 'trophy perf top1') || 'trophy perf top1',
-      content: normalizeField(raw.content || raw.text || raw.symbol || '')
+      content: normalizeField(raw.content || raw.text || raw.symbol || ''),
+      offsetX,
+      offsetY,
+      scale
     };
   }
 
@@ -167,7 +181,16 @@
 
         const cleanTitle = !title || title.toLowerCase() === 'title' ? '' : title;
         const trophySig = trophies
-          .map((trophy) => [trophy.url, trophy.href, trophy.title, trophy.className, trophy.content].join('\u0000'))
+          .map((trophy) => [
+            trophy.url,
+            trophy.href,
+            trophy.title,
+            trophy.className,
+            trophy.content,
+            trophy.offsetX,
+            trophy.offsetY,
+            trophy.scale
+          ].join('\u0000'))
           .join('\u0001');
 
         return {
@@ -274,7 +297,16 @@
 
     const trophies = Array.isArray(player.trophies) ? player.trophies : [];
     const signature = player.trophySig || trophies
-      .map((trophy) => [trophy.url, trophy.href, trophy.title, trophy.className, trophy.content].join('\u0000'))
+      .map((trophy) => [
+        trophy.url,
+        trophy.href,
+        trophy.title,
+        trophy.className,
+        trophy.content,
+        trophy.offsetX,
+        trophy.offsetY,
+        trophy.scale
+      ].join('\u0000'))
       .join('\u0001');
     if (container.dataset.injectedTrophySig === signature) {
       return;
@@ -297,11 +329,25 @@
       span.className = trophy.className || 'trophy perf top1';
       span.title = trophy.title || 'Top Blitz Player';
       span.setAttribute('aria-label', trophy.title || 'Top Blitz Player');
+      span.style.display = 'inline-flex';
+      span.style.alignItems = 'center';
+      span.style.justifyContent = 'center';
+      span.style.transformOrigin = 'center center';
+      span.style.marginLeft = '0';
+      span.style.marginRight = '0';
+
+      const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
+      const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
+      const scale = Number.isFinite(trophy.scale) ? trophy.scale : 1;
+      span.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
       if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophy.url) || /^data:image\//i.test(trophy.url)) {
         const img = document.createElement('img');
         img.src = trophy.url;
         img.alt = trophy.title || 'Top Blitz Player';
+        img.style.display = 'block';
+        img.style.maxWidth = '18px';
+        img.style.maxHeight = '18px';
         span.appendChild(img);
       } else {
         span.textContent = trophy.content || DEFAULT_TROPHY_CONTENT;

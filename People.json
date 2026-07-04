@@ -8,10 +8,12 @@
     "trophies": [
       {
         "url": "https://github.com/SomeoneOfficial/LichessTrophy/blob/main/Badges/OriginalCreator.png?raw=true",
-        "href": "/player/top/blitz",
-        "title": "Top Blitz Player",
+        "clickUrl": "/player/top/blitz",
+        "title": "Original Creator Of LichessTrophy",
         "className": "trophy perf top1",
-        "content": "Top Blitz Player"
+        "content": "Original Creator Of LichessTrophy",
+        "offsetY": 2,
+        "scale": 1.15
       }
     ]
   }
