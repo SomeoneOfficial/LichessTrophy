@@ -1,4 +1,4 @@
-This is a repo that allows custom awards to be added to your account on lichess!!!
+This is a repo that allows custom awards to be added to your account AND teams on lichess!!!
 ANY issues please submit a bug report
 
 how to install:
