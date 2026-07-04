@@ -490,10 +490,13 @@
       const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
       const scale = Number.isFinite(trophy.scale) ? trophy.scale : 1;
-      link.style.marginLeft = `${offsetX}px`;
-      link.style.marginTop = `${offsetY}px`;
+      const scaleGap = Math.max(0, Math.round((scale - 1) * 10));
+      link.style.position = 'relative';
+      link.style.left = `${offsetX}px`;
+      link.style.top = `${offsetY}px`;
+      link.style.marginRight = `${scaleGap}px`;
       span.style.transformOrigin = 'center center';
-      span.style.transform = `scale(${scale})`;
+      span.style.transform = `scale(${Math.max(scale, 1)})`;
 
       if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophy.url) || /^data:image\//i.test(trophy.url)) {
         const img = document.createElement('img');
