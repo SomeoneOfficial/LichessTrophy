@@ -514,6 +514,17 @@
       link.style.cursor = 'pointer';
       link.style.textDecoration = 'none';
       link.style.verticalAlign = 'middle';
+      link.style.position = 'relative';
+      link.style.transition = 'transform 140ms ease, filter 140ms ease, opacity 140ms ease';
+      link.style.willChange = 'transform';
+      link.addEventListener('mouseenter', () => {
+        link.style.transform = 'translateY(-2px) scale(1.08)';
+        link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
+      });
+      link.addEventListener('mouseleave', () => {
+        link.style.transform = 'none';
+        link.style.filter = 'none';
+      });
 
       const span = document.createElement('span');
       span.className = 'injected-trophy-inner';
@@ -527,7 +538,6 @@
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
       const scale = Number.isFinite(trophy.scale) ? trophy.scale : 1;
       const scaleGap = Math.max(0, Math.round((scale - 1) * 10));
-      link.style.position = 'relative';
       link.style.left = `${offsetX}px`;
       link.style.top = `${offsetY}px`;
       link.style.marginRight = `${scaleGap}px`;
@@ -586,6 +596,7 @@
     }
 
     const flair = header.querySelector('img.uflair');
+    let insertionPoint = flair || null;
 
     for (const badge of badges) {
       if (!badge.url) continue;
@@ -608,7 +619,7 @@
       link.style.pointerEvents = 'auto';
       link.style.overflow = 'visible';
       link.style.transformOrigin = 'center center';
-      link.style.transition = 'transform 140ms ease, filter 140ms ease';
+      link.style.transition = 'transform 140ms ease, filter 140ms ease, opacity 140ms ease';
       link.style.willChange = 'transform';
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
@@ -640,6 +651,7 @@
       const scale = Number.isFinite(badge.scale) ? badge.scale : 1.08;
       link.style.marginLeft = `${offsetX}px`;
       link.style.marginTop = `${offsetY}px`;
+      link.style.position = 'relative';
       inner.style.transformOrigin = 'center center';
       inner.style.transform = `scale(${scale})`;
 
@@ -659,8 +671,12 @@
       }
 
       link.appendChild(inner);
-
-      header.appendChild(link);
+      if (insertionPoint && insertionPoint.parentNode === header) {
+        insertionPoint.insertAdjacentElement('afterend', link);
+      } else {
+        header.appendChild(link);
+      }
+      insertionPoint = link;
     }
 
     header.dataset.injectedTeamSig = signature;
