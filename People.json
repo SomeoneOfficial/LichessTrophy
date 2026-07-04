@@ -32,13 +32,13 @@
         "clickUrl": "https://github.com/SomeoneOfficial/LichessTrophy",
         "title": "First 20 Users",
         "className": "trophy award icon3d streamer",
-        "content": "First 20 Users",
+        "content": "First Users",
         "offsetY": 0,
         "offsetX": 8,
-        "scale": 4,
+        "scale": 6,
         "glowEnabled": true,
         "rgb": "rgb(8, 1, 99)",
-        "intensity": 10
+        "intensity": 50
       }
     ]
   }
