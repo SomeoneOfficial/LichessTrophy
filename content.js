@@ -526,7 +526,7 @@
       link.style.willChange = 'transform';
       link.addEventListener('mouseenter', () => {
         link.style.zIndex = '5';
-        link.style.transform = 'translate3d(0, -3px, 0) scale(1.12)';
+        link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
       });
       link.addEventListener('mouseleave', () => {
@@ -542,6 +542,7 @@
       span.style.verticalAlign = 'middle';
       span.style.lineHeight = '0';
       span.style.pointerEvents = 'none';
+      span.style.overflow = 'visible';
 
       const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
@@ -551,6 +552,7 @@
       link.style.top = `${offsetY}px`;
       link.style.marginRight = `${scaleGap}px`;
       link.style.overflow = 'visible';
+      link.style.zIndex = '1';
       span.style.transformOrigin = 'center center';
       span.style.transform = `scale(${Math.max(scale, 1)})`;
 
@@ -579,6 +581,7 @@
 
   function setTeamBadges(header, team) {
     if (!header) return;
+    header.style.overflow = 'visible';
 
     const badges = Array.isArray(team.badges) ? team.badges : [];
     const signature = team.badgeSig || badges
@@ -632,16 +635,20 @@
       link.style.willChange = 'transform';
       link.style.backfaceVisibility = 'hidden';
       link.style.transform = 'translateZ(0)';
+      link.style.lineHeight = '0';
+      link.style.zIndex = '1';
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
         event.preventDefault();
         window.location.assign(href);
       });
       link.addEventListener('mouseenter', () => {
+        link.style.zIndex = '5';
         link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
       });
       link.addEventListener('mouseleave', () => {
+        link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
       });
@@ -656,6 +663,7 @@
       inner.style.verticalAlign = 'middle';
       inner.style.lineHeight = '1';
       inner.style.overflow = 'visible';
+      inner.style.pointerEvents = 'none';
 
       const offsetX = Number.isFinite(badge.offsetX) ? badge.offsetX : 0;
       const offsetY = Number.isFinite(badge.offsetY) ? badge.offsetY : 0;
@@ -676,6 +684,7 @@
         img.style.maxWidth = '18px';
         img.style.maxHeight = '18px';
         img.style.pointerEvents = 'none';
+        img.style.verticalAlign = 'middle';
         inner.appendChild(img);
       } else {
         inner.textContent = badge.content || DEFAULT_TROPHY_CONTENT;
