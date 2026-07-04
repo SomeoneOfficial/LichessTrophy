@@ -1,8 +1,10 @@
 (function () {
   'use strict';
 
-  const JSON_URL = `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/contents/People.json?ref=main&t=${Date.now()}`;
-  const FALLBACK_JSON_URL = chrome.runtime.getURL('People.json');
+  const PEOPLE_JSON_URL = `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/contents/People.json?ref=main&t=${Date.now()}`;
+  const TEAMS_JSON_URL = `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/contents/Teams.json?ref=main&t=${Date.now()}`;
+  const FALLBACK_PEOPLE_JSON_URL = chrome.runtime.getURL('People.json');
+  const FALLBACK_TEAMS_JSON_URL = chrome.runtime.getURL('Teams.json');
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
   const DEFAULT_SETTINGS = {
@@ -15,6 +17,7 @@
   };
 
   let players = [];
+  let teams = [];
   let injectScheduled = false;
   let settings = { ...DEFAULT_SETTINGS };
   let panelRoot = null;
@@ -32,6 +35,13 @@
 
   function normalizeUser(value) {
     return normalizeField(value).toLowerCase();
+  }
+
+  function normalizeSlug(value) {
+    return normalizeField(value)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   function extractUserFromHref(href) {
@@ -208,6 +218,80 @@
       .filter(Boolean);
   }
 
+  function parseTeams(text) {
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      console.error('Team JSON parse failed:', error);
+      return [];
+    }
+
+    const rows = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed.teams)
+        ? parsed.teams
+        : [];
+
+    return rows
+      .map((raw) => {
+        const name = normalizeField(raw.name || raw.team || raw.slug || raw.id);
+        if (!name) return null;
+
+        const id = normalizeSlug(raw.team || raw.slug || raw.id || raw.name);
+        const title = normalizeField(raw.title || raw.name || name);
+        const clickHref = normalizeField(raw.clickHref || raw.click_href || raw.linkHref || raw.link_href);
+
+        const rawBadges = Array.isArray(raw.badges)
+          ? raw.badges
+          : Array.isArray(raw.trophies)
+            ? raw.trophies
+            : [];
+
+        const badges = rawBadges
+          .map((badge) => normalizeTrophy(badge, clickHref))
+          .filter(Boolean);
+
+        if (!badges.length) {
+          const legacyBadge = normalizeTrophy({
+            url: raw.badgeUrl || raw.badge_url || raw.badge || raw.url,
+            href: raw.badgeHref || raw.badge_href || raw.href,
+            title: raw.badgeTitle || raw.badge_title || title,
+            className: raw.badgeClass || raw.badge_class || raw.className,
+            content: raw.badgeContent || raw.badge_content
+          }, clickHref);
+
+          if (legacyBadge) {
+            badges.push(legacyBadge);
+          }
+        }
+
+        const badgeSig = badges
+          .map((badge) => [
+            badge.url,
+            badge.href,
+            badge.title,
+            badge.className,
+            badge.content,
+            badge.offsetX,
+            badge.offsetY,
+            badge.scale
+          ].join('\u0000'))
+          .join('\u0001');
+
+        return {
+          name,
+          id,
+          title,
+          clickHref,
+          badges,
+          badgeSig
+        };
+      })
+      .filter(Boolean);
+  }
+
   function decodeGitHubContent(text) {
     let parsed;
 
@@ -239,32 +323,50 @@
     return text;
   }
 
-  function loadData() {
-    return fetch(JSON_URL, {
+  function loadJsonSource(url, fallbackUrl, label) {
+    return fetch(url, {
       cache: 'no-store',
       mode: 'cors',
       headers: {
         Accept: 'application/vnd.github.raw+json'
       }
     })
-      .then((response) => response.text())
-      .then((text) => {
-        players = parsePlayers(decodeGitHubContent(text));
-        console.log('Loaded players:', players);
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`${label} request failed with status ${response.status}`);
+        }
+
+        return response.text();
       })
+      .then((text) => decodeGitHubContent(text))
       .catch((error) => {
-        console.error('JSON load failed, trying local fallback:', error);
-        return fetch(FALLBACK_JSON_URL, { cache: 'no-store' })
-          .then((response) => response.text())
-          .then((text) => {
-            players = parsePlayers(text);
-            console.log('Loaded fallback players:', players);
+        console.error(`${label} JSON load failed, trying local fallback:`, error);
+        return fetch(fallbackUrl, { cache: 'no-store' })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`${label} fallback failed with status ${response.status}`);
+            }
+
+            return response.text();
           })
+          .then((text) => text)
           .catch((fallbackError) => {
-            console.error('Fallback JSON load failed:', fallbackError);
-            players = [];
+            console.error(`Fallback ${label} JSON load failed:`, fallbackError);
+            return '[]';
           });
       });
+  }
+
+  async function loadData() {
+    const [peopleText, teamsText] = await Promise.all([
+      loadJsonSource(PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People'),
+      loadJsonSource(TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams')
+    ]);
+
+    players = parsePlayers(peopleText);
+    teams = parseTeams(teamsText);
+    console.log('Loaded players:', players);
+    console.log('Loaded teams:', teams);
   }
 
   function getPrimaryTextNode(el) {
@@ -328,6 +430,17 @@
     return container;
   }
 
+  function normalizeTeamPath(pathname = window.location.pathname) {
+    const match = String(pathname || '').match(/^\/team\/([^/?#]+)/i);
+    if (!match) return '';
+
+    try {
+      return normalizeSlug(decodeURIComponent(match[1]));
+    } catch (error) {
+      return normalizeSlug(match[1]);
+    }
+  }
+
   function setTrophies(el, player) {
     const container = ensureTrophiesContainer(el);
     if (!container) return;
@@ -367,6 +480,7 @@
       link.style.display = 'inline-block';
       link.style.cursor = 'pointer';
       link.style.textDecoration = 'none';
+      link.style.verticalAlign = 'middle';
 
       const span = document.createElement('span');
       span.className = 'injected-trophy-inner';
@@ -379,9 +493,10 @@
       const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
       const scale = Number.isFinite(trophy.scale) ? trophy.scale : 1;
-      span.style.position = 'relative';
+      link.style.marginLeft = `${offsetX}px`;
+      link.style.marginTop = `${offsetY}px`;
       span.style.transformOrigin = 'center center';
-      span.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      span.style.transform = `scale(${scale})`;
 
       if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophy.url) || /^data:image\//i.test(trophy.url)) {
         const img = document.createElement('img');
@@ -401,6 +516,92 @@
     }
 
     container.dataset.injectedTrophySig = signature;
+  }
+
+  function getTeamHeader() {
+    return document.querySelector('.box__top h1.text');
+  }
+
+  function setTeamBadges(header, team) {
+    if (!header) return;
+
+    const badges = Array.isArray(team.badges) ? team.badges : [];
+    const signature = team.badgeSig || badges
+      .map((badge) => [
+        badge.url,
+        badge.href,
+        badge.title,
+        badge.className,
+        badge.content,
+        badge.offsetX,
+        badge.offsetY,
+        badge.scale
+      ].join('\u0000'))
+      .join('\u0001');
+
+    if (header.dataset.injectedTeamSig === signature) {
+      return;
+    }
+
+    header.querySelectorAll('a.injected-team-badge').forEach((badge) => badge.remove());
+    if (!badges.length) {
+      delete header.dataset.injectedTeamSig;
+      return;
+    }
+
+    const flair = header.querySelector('img.uflair');
+
+    for (const badge of badges) {
+      if (!badge.url) continue;
+
+      const link = document.createElement('a');
+      link.href = badge.clickUrl || badge.href || team.clickHref || '#';
+      link.className = `${badge.className || 'uflair'} injected-team-badge`;
+      link.title = badge.title || team.title || 'Team badge';
+      link.target = '_self';
+      link.rel = 'noreferrer';
+      link.style.display = 'inline-block';
+      link.style.textDecoration = 'none';
+      link.style.verticalAlign = 'middle';
+      link.style.cursor = 'pointer';
+
+      const inner = document.createElement('span');
+      inner.className = 'injected-team-badge-inner';
+      inner.title = badge.title || team.title || 'Team badge';
+      inner.setAttribute('aria-label', badge.title || team.title || 'Team badge');
+      inner.style.display = 'inline-block';
+      inner.style.verticalAlign = 'middle';
+      inner.style.lineHeight = '0';
+
+      const offsetX = Number.isFinite(badge.offsetX) ? badge.offsetX : 0;
+      const offsetY = Number.isFinite(badge.offsetY) ? badge.offsetY : 0;
+      const scale = Number.isFinite(badge.scale) ? badge.scale : 1;
+      link.style.marginLeft = `${offsetX}px`;
+      link.style.marginTop = `${offsetY}px`;
+      inner.style.transformOrigin = 'center center';
+      inner.style.transform = `scale(${scale})`;
+
+      if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(badge.url) || /^data:image\//i.test(badge.url)) {
+        const img = document.createElement('img');
+        img.src = badge.url;
+        img.alt = badge.title || team.title || 'Team badge';
+        img.title = badge.title || team.title || 'Team badge';
+        img.className = 'uflair';
+        img.style.display = 'block';
+        img.style.maxWidth = '18px';
+        img.style.maxHeight = '18px';
+        inner.appendChild(img);
+      } else {
+        inner.textContent = badge.content || DEFAULT_TROPHY_CONTENT;
+      }
+
+      link.appendChild(inner);
+
+      if (flair) flair.insertAdjacentElement('beforebegin', link);
+      else header.appendChild(link);
+    }
+
+    header.dataset.injectedTeamSig = signature;
   }
 
   function clearInjected(el) {
@@ -423,6 +624,12 @@
     delete el.dataset.originalName;
     delete el.dataset.injectedFor;
     delete el.dataset.injectedSig;
+  }
+
+  function clearTeamInjected(header) {
+    if (!header) return;
+    header.querySelectorAll('a.injected-team-badge').forEach((badge) => badge.remove());
+    delete header.dataset.injectedTeamSig;
   }
 
   function syncPanel() {
@@ -591,12 +798,13 @@
   }
 
   function inject() {
-    if (!players.length) return;
+    if (!players.length && !teams.length) return;
 
     if (!settings.enabled) {
       document.querySelectorAll('.user-link').forEach((el) => {
         if (el.dataset.injectedFor) clearInjected(el);
       });
+      clearTeamInjected(getTeamHeader());
       return;
     }
 
@@ -671,6 +879,21 @@
       el.dataset.injectedFor = player.id;
       el.dataset.injectedSig = signature;
     });
+
+    const teamHeader = getTeamHeader();
+    const currentTeam = normalizeTeamPath();
+    const team = teams.find((entry) => entry.id === currentTeam);
+
+    if (!teamHeader || !currentTeam || !team) {
+      if (teamHeader) clearTeamInjected(teamHeader);
+      return;
+    }
+
+    if (settings.showBadge) {
+      setTeamBadges(teamHeader, team);
+    } else {
+      clearTeamInjected(teamHeader);
+    }
   }
 
   function scheduleInject() {
