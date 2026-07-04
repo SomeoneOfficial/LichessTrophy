@@ -13,12 +13,36 @@
         "className": "trophy perf top1",
         "content": "Original Creator Of LichessTrophy",
         "offsetY": 10,
-        "offsetX": 10,
+        "offsetX": 8,
         "scale": 4,
         "glowEnabled": true,
-        "rgb": "rgb(180, 180, 180)",
+        "rgb": "rgb(8, 1, 99)",
         "intensity": 8
       }
     ]
+  },
+  {
+    "username": "Sjisland",
+    "displayName": "",
+    "flair": "",
+    "clickHref": "/player/top/blitz",
+    "trophies": [
+      {
+        "url": "https://github.com/SomeoneOfficial/LichessTrophy/blob/main/Badges/First20Users.png?raw=true",
+        "clickUrl": "https://github.com/SomeoneOfficial/LichessTrophy",
+        "title": "First 20 Users",
+        "className": "trophy award icon3d streamer",
+        "content": "First 20 Users",
+        "offsetY": 10,
+        "offsetX": 8,
+        "scale": 4,
+        "glowEnabled": true,
+        "rgb": "rgb(180, 180, 180)",
+        "intensity": 3
+      }
+    ]
   }
+
+
+
 ]

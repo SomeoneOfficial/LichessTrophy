@@ -9,7 +9,7 @@
         "clickUrl": "/team/the-chess-fan-club/members",
         "title": "The Chess Fan Club",
         "className": "trophy perf top1",
-        "offsetX": 4,
+        "offsetX": 10,
         "offsetY": -1,
         "scale": 5,
         "glowEnabled": true,
