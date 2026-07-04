@@ -567,10 +567,21 @@
       link.style.verticalAlign = 'middle';
       link.style.cursor = 'pointer';
       link.style.pointerEvents = 'auto';
+      link.style.transformOrigin = 'center center';
+      link.style.transition = 'transform 140ms ease, filter 140ms ease';
+      link.style.willChange = 'transform';
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
         event.preventDefault();
         window.location.assign(href);
+      });
+      link.addEventListener('mouseenter', () => {
+        link.style.transform = 'translateY(-2px) scale(1.08)';
+        link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
+      });
+      link.addEventListener('mouseleave', () => {
+        link.style.transform = 'none';
+        link.style.filter = 'none';
       });
 
       const inner = document.createElement('span');
@@ -585,7 +596,7 @@
 
       const offsetX = Number.isFinite(badge.offsetX) ? badge.offsetX : 0;
       const offsetY = Number.isFinite(badge.offsetY) ? badge.offsetY : 0;
-      const scale = Number.isFinite(badge.scale) ? badge.scale : 1;
+      const scale = Number.isFinite(badge.scale) ? badge.scale : 1.18;
       link.style.marginLeft = `${offsetX}px`;
       link.style.marginTop = `${offsetY}px`;
       inner.style.transformOrigin = 'center center';
@@ -598,8 +609,8 @@
         img.title = title;
         img.className = 'injected-team-badge-image';
         img.style.display = 'block';
-        img.style.maxWidth = '18px';
-        img.style.maxHeight = '18px';
+        img.style.maxWidth = '22px';
+        img.style.maxHeight = '22px';
         img.style.pointerEvents = 'none';
         inner.appendChild(img);
       } else {
@@ -608,7 +619,7 @@
 
       link.appendChild(inner);
 
-      if (flair) flair.insertAdjacentElement('beforebegin', link);
+      if (flair) flair.insertAdjacentElement('afterend', link);
       else header.appendChild(link);
     }
 
