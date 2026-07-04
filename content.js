@@ -14,7 +14,10 @@
     changeDisplayName: true,
     showBadge: true,
     showFlair: true,
-    showTrophy: true
+    showTrophy: true,
+    showGlow: false,
+    glowIntensity: 8,
+    glowColor: '#ffd54a'
   };
 
   let players = [];
@@ -149,8 +152,32 @@
       settings.changeDisplayName,
       settings.showBadge,
       settings.showFlair,
-      settings.showTrophy
+      settings.showTrophy,
+      settings.showGlow,
+      settings.glowIntensity,
+      settings.glowColor
     ].join('\u0001');
+  }
+
+  function getAwardGlowStyles() {
+    const enabled = !!settings.showGlow;
+    const intensity = Math.max(0, parseNumber(settings.glowIntensity, 0));
+    const color = normalizeField(settings.glowColor || '#ffd54a') || '#ffd54a';
+
+    if (!enabled || intensity <= 0) {
+      return {
+        base: 'none',
+        hover: 'none'
+      };
+    }
+
+    const baseBlur = Math.max(1, Math.round(intensity));
+    const hoverBlur = Math.max(baseBlur + 2, Math.round(baseBlur * 1.6));
+
+    return {
+      base: `0 0 ${baseBlur}px ${color}`,
+      hover: `0 0 ${hoverBlur}px ${color}, 0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${color}`
+    };
   }
 
   function normalizeTrophy(raw, fallbackClickHref) {
@@ -481,6 +508,7 @@
   function setTrophies(el, player) {
     const container = ensureTrophiesContainer(el);
     if (!container) return;
+    const glow = getAwardGlowStyles();
 
     const trophies = Array.isArray(player.trophies) ? player.trophies : [];
     const signature = player.trophySig || trophies
@@ -524,15 +552,19 @@
       link.style.backfaceVisibility = 'hidden';
       link.style.transform = 'translateZ(0)';
       link.style.willChange = 'transform';
+      link.style.boxShadow = glow.base;
+      link.style.borderRadius = '4px';
       link.addEventListener('mouseenter', () => {
         link.style.zIndex = '5';
         link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
+        link.style.boxShadow = glow.hover;
       });
       link.addEventListener('mouseleave', () => {
         link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
+        link.style.boxShadow = glow.base;
       });
 
       const span = document.createElement('span');
@@ -585,6 +617,7 @@
     if (header.parentElement) {
       header.parentElement.style.overflow = 'visible';
     }
+    const glow = getAwardGlowStyles();
 
     const badges = Array.isArray(team.badges) ? team.badges : [];
     const signature = team.badgeSig || badges
@@ -598,6 +631,7 @@
         badge.offsetY,
         badge.scale
       ].join('\u0000'))
+      .concat([settingsSignature()])
       .join('\u0001');
 
     if (header.dataset.injectedTeamSig === signature) {
@@ -641,6 +675,8 @@
       link.style.transform = 'translateZ(0)';
       link.style.lineHeight = '0';
       link.style.zIndex = '1';
+      link.style.boxShadow = glow.base;
+      link.style.borderRadius = '4px';
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -650,11 +686,13 @@
         link.style.zIndex = '5';
         link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
+        link.style.boxShadow = glow.hover;
       });
       link.addEventListener('mouseleave', () => {
         link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
+        link.style.boxShadow = glow.base;
       });
 
       const inner = document.createElement('span');
@@ -758,6 +796,10 @@
     panelEls.badge.checked = !!settings.showBadge;
     panelEls.flair.checked = !!settings.showFlair;
     panelEls.trophy.checked = !!settings.showTrophy;
+    if (panelEls.glow) panelEls.glow.checked = !!settings.showGlow;
+    if (panelEls.glowIntensity) panelEls.glowIntensity.value = String(Number.isFinite(Number(settings.glowIntensity)) ? settings.glowIntensity : 0);
+    if (panelEls.glowColor) panelEls.glowColor.value = normalizeField(settings.glowColor || '#ffd54a') || '#ffd54a';
+    if (panelEls.glowValue) panelEls.glowValue.textContent = String(Number.isFinite(Number(settings.glowIntensity)) ? settings.glowIntensity : 0);
     panelEls.body.classList.toggle('is-disabled', !settings.enabled);
     if (panelEls.versionStatus) {
       panelEls.versionStatus.className = 'version-status';
@@ -871,6 +913,23 @@
           height: 16px;
           accent-color: #7aa2ff;
         }
+        .row input[type="range"] {
+          width: 96px;
+          height: 16px;
+        }
+        .row input[type="color"] {
+          width: 28px;
+          height: 24px;
+          padding: 0;
+          border: 0;
+          background: transparent;
+        }
+        .row .value {
+          min-width: 42px;
+          text-align: right;
+          color: rgba(243,244,246,0.78);
+          font-variant-numeric: tabular-nums;
+        }
         .note {
           font-size: 11px;
           color: rgba(243,244,246,0.72);
@@ -933,6 +992,9 @@
           <label class="row"><span>Show badge</span><input type="checkbox" data-setting="showBadge"></label>
           <label class="row"><span>Show flair</span><input type="checkbox" data-setting="showFlair"></label>
           <label class="row"><span>Show trophy</span><input type="checkbox" data-setting="showTrophy"></label>
+          <label class="row"><span>Glow awards</span><input type="checkbox" data-setting="showGlow"></label>
+          <label class="row"><span>Glow intensity</span><input type="range" min="0" max="24" step="1" data-setting="glowIntensity"><span class="value" data-glow-value></span></label>
+          <label class="row"><span>Glow color</span><input type="color" data-setting="glowColor"></label>
           <div class="version-box">
             <div class="version-label">Version</div>
             <div class="version-status" data-version-status>Checking for updates...</div>
@@ -954,6 +1016,10 @@
     const badge = shadow.querySelector('[data-setting="showBadge"]');
     const flair = shadow.querySelector('[data-setting="showFlair"]');
     const trophy = shadow.querySelector('[data-setting="showTrophy"]');
+    const glow = shadow.querySelector('[data-setting="showGlow"]');
+    const glowIntensity = shadow.querySelector('[data-setting="glowIntensity"]');
+    const glowColor = shadow.querySelector('[data-setting="glowColor"]');
+    const glowValue = shadow.querySelector('[data-glow-value]');
     const versionStatus = shadow.querySelector('[data-version-status]');
     const versionDetail = shadow.querySelector('[data-version-detail]');
     const toggleButton = shadow.querySelector('[data-action="toggle-panel"]');
@@ -966,12 +1032,17 @@
       badge,
       flair,
       trophy,
+      glow,
+      glowIntensity,
+      glowColor,
+      glowValue,
       versionStatus,
       versionDetail
     };
 
     const bind = (key, element) => {
-      element.addEventListener('change', () => {
+      const eventName = element && element.type === 'range' ? 'input' : 'change';
+      element.addEventListener(eventName, () => {
         saveSettings({
           ...settings,
           [key]: element.checked
@@ -985,6 +1056,26 @@
     bind('showBadge', badge);
     bind('showFlair', flair);
     bind('showTrophy', trophy);
+    bind('showGlow', glow);
+
+    if (glowIntensity) {
+      glowIntensity.addEventListener('input', () => {
+        if (glowValue) glowValue.textContent = glowIntensity.value;
+        saveSettings({
+          ...settings,
+          glowIntensity: parseNumber(glowIntensity.value, 0)
+        });
+      });
+    }
+
+    if (glowColor) {
+      glowColor.addEventListener('change', () => {
+        saveSettings({
+          ...settings,
+          glowColor: glowColor.value
+        });
+      });
+    }
 
     toggleButton.addEventListener('click', () => {
       togglePanel();
