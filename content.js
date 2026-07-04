@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  const CSV_URL = chrome.runtime.getURL('People.csv');
+  const CSV_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/People.csv';
+  const FALLBACK_CSV_URL = chrome.runtime.getURL('People.csv');
 
   let players = [];
 
@@ -138,7 +139,7 @@
   }
 
   function loadData() {
-    return fetch(CSV_URL, { cache: 'no-store' })
+    return fetch(CSV_URL, { cache: 'no-store', mode: 'cors' })
       .then((response) => response.text())
       .then((text) => {
         const rows = parseCsv(text);
@@ -178,8 +179,51 @@
         console.log('Loaded players:', players);
       })
       .catch((error) => {
-        console.error('CSV load failed:', error);
-        players = [];
+        console.error('CSV load failed, trying local fallback:', error);
+
+        return fetch(FALLBACK_CSV_URL, { cache: 'no-store' })
+          .then((response) => response.text())
+          .then((text) => {
+            const rows = parseCsv(text);
+            if (!rows.length) {
+              players = [];
+              return;
+            }
+
+            const header = rows[0].map((value) => String(value || '').trim().toLowerCase());
+            const hasHeader = header.includes('username') || header.includes('name') || header.includes('trophiesurl');
+            const indexMap = hasHeader ? getColumnIndexMap(rows[0]) : null;
+            const dataRows = hasHeader ? rows.slice(1) : rows;
+
+            players = dataRows
+              .map((row) => {
+                const name = normalizeUser(readColumn(row, indexMap, ['username', 'name'], 0));
+                if (!name) return null;
+
+                const title = (readColumn(row, indexMap, ['title'], 1) || '').trim();
+                const displayName = (readColumn(row, indexMap, ['displayname', 'display name'], 2) || '').trim();
+                const flair = (readColumn(row, indexMap, ['flair'], 3) || '').trim();
+                const trophiesUrl = (readColumn(row, indexMap, ['trophiesurl', 'trophies url', 'trophies'], 4) || '').trim();
+                const cleanTitle = !title || title.toLowerCase() === 'title' ? '' : title;
+
+                return {
+                  name,
+                  id: name,
+                  title: cleanTitle,
+                  displayName,
+                  flair,
+                  trophiesUrl,
+                  badge: createBadge(cleanTitle)
+                };
+              })
+              .filter(Boolean);
+
+            console.log('Loaded fallback players:', players);
+          })
+          .catch((fallbackError) => {
+            console.error('Fallback CSV load failed:', fallbackError);
+            players = [];
+          });
       });
   }
 

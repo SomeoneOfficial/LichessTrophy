@@ -3,6 +3,10 @@
   "name": "Lichess Trophy Injector",
   "version": "1.0.0",
   "description": "Inject custom names, titles, and flair on lichess.org from a packaged CSV file.",
+  "host_permissions": [
+    "https://raw.githubusercontent.com/*",
+    "https://githubusercontent.com/*"
+  ],
   "content_scripts": [
     {
       "matches": ["https://lichess.org/*"],
