@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Lichess Trophy Injector",
+  "version": "1.0.0",
+  "description": "Inject custom names, titles, and flair on lichess.org from a packaged CSV file.",
+  "content_scripts": [
+    {
+      "matches": ["https://lichess.org/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
