@@ -7,10 +7,10 @@ first download and unzip  by clicking on code and download zip
 then go to chrome://extensions/ 
 and then click developer mode on
 then load unpacked and then select the folder you unzipped! and you are done! message @ajisland on lichess for questions!
+Also if you want to host a tournament that has these types of awards message me on lichess too!
 
 <img width="1596" height="862" alt="image" src="https://github.com/user-attachments/assets/847c7ec9-7aef-460e-a1bf-6c17732b640b" />
 
-Also if you want to host a tournament that has these types of awards message me on lichess too!
 
 
 <img width="3200" height="2000" alt="Screenshot 2026-07-04 130857" src="https://github.com/user-attachments/assets/5fc61dcc-eb15-42a4-a8ce-16c759795984" />
