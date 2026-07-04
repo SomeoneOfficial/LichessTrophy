@@ -1,8 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Lichess Trophy Injector",
+  "name": "LichessTrophy",
   "version": "1.0.0",
   "description": "Inject custom names, titles, and flair on lichess.org from a packaged CSV file.",
+  "icons": {
+    "16": "gold-cup.png",
+    "48": "gold-cup.png",
+    "128": "gold-cup.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "gold-cup.png",
+      "48": "gold-cup.png",
+      "128": "gold-cup.png"
+    }
+  },
+  "permissions": ["storage"],
   "host_permissions": [
     "https://raw.githubusercontent.com/*",
     "https://githubusercontent.com/*"
