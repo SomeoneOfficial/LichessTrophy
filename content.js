@@ -5,6 +5,7 @@
   const FALLBACK_CSV_URL = chrome.runtime.getURL('People.csv');
 
   let players = [];
+  let injectScheduled = false;
 
   function normalizeUser(value) {
     return (value || '').trim().toLowerCase();
@@ -279,8 +280,17 @@
     const container = findTrophiesContainer(el);
     if (!container) return;
 
+    const signature = trophiesUrl || '';
+    if (container.dataset.injectedTrophySig === signature) {
+      return;
+    }
+
     container.querySelectorAll('img.injected-trophy').forEach((img) => img.remove());
-    if (!trophiesUrl) return;
+    container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
+    if (!trophiesUrl) {
+      delete container.dataset.injectedTrophySig;
+      return;
+    }
 
     const urls = trophiesUrl
       .split('|')
@@ -288,14 +298,27 @@
       .filter(Boolean);
 
     urls.forEach((url) => {
-      const img = document.createElement('img');
-      img.className = 'injected-trophy';
-      img.src = url;
-      img.alt = 'trophy';
-      img.title = 'trophy';
-      img.style.cssText = 'display:inline-block;margin-left:4px;vertical-align:middle;max-height:18px;max-width:18px;';
-      container.appendChild(img);
+      const link = document.createElement('a');
+      link.className = 'trophy award icon3d injected-trophy';
+      link.href = url;
+      link.title = 'Custom Trophy';
+      link.setAttribute('aria-label', 'Custom Trophy');
+      link.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;margin-left:4px;vertical-align:middle;';
+
+      if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url) || /^data:image\//i.test(url)) {
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'Custom Trophy';
+        img.style.cssText = 'display:block;max-height:18px;max-width:18px;';
+        link.appendChild(img);
+      } else {
+        link.textContent = '';
+      }
+
+      container.appendChild(link);
     });
+
+    container.dataset.injectedTrophySig = signature;
   }
 
   function clearInjected(el) {
@@ -308,6 +331,13 @@
 
     el.querySelectorAll('.injected-badge').forEach((badge) => badge.remove());
     el.querySelectorAll('img.injected-flair').forEach((img) => img.remove());
+
+    const container = findTrophiesContainer(el);
+    if (container) {
+      container.querySelectorAll('img.injected-trophy').forEach((img) => img.remove());
+      container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
+      delete container.dataset.injectedTrophySig;
+    }
 
     delete el.dataset.originalName;
     delete el.dataset.injectedFor;
@@ -365,9 +395,19 @@
     });
   }
 
+  function scheduleInject() {
+    if (injectScheduled) return;
+    injectScheduled = true;
+
+    requestAnimationFrame(() => {
+      injectScheduled = false;
+      inject();
+    });
+  }
+
   function observe() {
     const target = document.body || document.documentElement;
-    const obs = new MutationObserver(inject);
+    const obs = new MutationObserver(scheduleInject);
     obs.observe(target, {
       childList: true,
       subtree: true
