@@ -33,7 +33,7 @@
         "title": "First 20 Users",
         "className": "trophy award icon3d streamer",
         "content": "First 20 Users",
-        "offsetY": 10,
+        "offsetY": 5,
         "offsetX": 8,
         "scale": 4,
         "glowEnabled": true,
