@@ -854,7 +854,7 @@
         const wrapper = document.createElement('span');
         wrapper.innerHTML = player.badge;
         const badgeNode = wrapper.firstChild;
-        const icon = el.querySelector('i.line');
+        const icon = el.querySelector('icon.line, i.line');
 
         if (icon) icon.insertAdjacentElement('afterend', badgeNode);
         else el.prepend(badgeNode);
