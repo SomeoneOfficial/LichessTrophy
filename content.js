@@ -452,13 +452,17 @@
 
   function ensureTrophiesContainer(el) {
     const existing = findTrophiesContainer(el);
-    if (existing) return existing;
+    if (existing) {
+      existing.style.overflow = 'visible';
+      return existing;
+    }
 
     const side = document.querySelector('.side');
     if (!side) return null;
 
     const container = document.createElement('div');
     container.className = 'trophies';
+    container.style.overflow = 'visible';
     side.prepend(container);
     return container;
   }
@@ -507,7 +511,6 @@
       const link = document.createElement('a');
       link.href = trophy.clickUrl || trophy.href || player.clickHref || '/player/top/blitz';
       link.className = `${trophy.className || 'trophy perf top1'} injected-trophy`;
-      link.title = trophy.title || 'Top Blitz Player';
       link.target = '_self';
       link.rel = 'noreferrer';
       link.style.display = 'inline-block';
@@ -515,24 +518,30 @@
       link.style.textDecoration = 'none';
       link.style.verticalAlign = 'middle';
       link.style.position = 'relative';
+      link.style.zIndex = '1';
       link.style.transition = 'transform 140ms ease, filter 140ms ease, opacity 140ms ease';
+      link.style.transformOrigin = 'center center';
+      link.style.backfaceVisibility = 'hidden';
+      link.style.transform = 'translateZ(0)';
       link.style.willChange = 'transform';
       link.addEventListener('mouseenter', () => {
-        link.style.transform = 'translateY(-2px) scale(1.08)';
+        link.style.zIndex = '5';
+        link.style.transform = 'translate3d(0, -3px, 0) scale(1.12)';
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
       });
       link.addEventListener('mouseleave', () => {
-        link.style.transform = 'none';
+        link.style.zIndex = '1';
+        link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
       });
 
       const span = document.createElement('span');
       span.className = 'injected-trophy-inner';
-      span.title = trophy.title || 'Top Blitz Player';
       span.setAttribute('aria-label', trophy.title || 'Top Blitz Player');
       span.style.display = 'inline-block';
       span.style.verticalAlign = 'middle';
       span.style.lineHeight = '0';
+      span.style.pointerEvents = 'none';
 
       const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
@@ -541,6 +550,7 @@
       link.style.left = `${offsetX}px`;
       link.style.top = `${offsetY}px`;
       link.style.marginRight = `${scaleGap}px`;
+      link.style.overflow = 'visible';
       span.style.transformOrigin = 'center center';
       span.style.transform = `scale(${Math.max(scale, 1)})`;
 
@@ -548,7 +558,6 @@
         const img = document.createElement('img');
         img.src = trophy.url;
         img.alt = trophy.title || 'Top Blitz Player';
-        img.title = trophy.title || 'Top Blitz Player';
         img.style.display = 'block';
         img.style.maxWidth = '18px';
         img.style.maxHeight = '18px';
