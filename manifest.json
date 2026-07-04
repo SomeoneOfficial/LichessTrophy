@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "LichessTrophy",
   "version": "1.0.0",
-  "description": "Inject custom names, titles, and flair on lichess.org from a packaged CSV file.",
+  "description": "Inject custom names, titles, and flair on lichess.org from a packaged JSON file.",
   "icons": {
     "16": "gold-cup.png",
     "48": "gold-cup.png",

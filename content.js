@@ -1,8 +1,9 @@
 (function () {
   'use strict';
 
-  const CSV_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/People.csv';
-  const FALLBACK_CSV_URL = chrome.runtime.getURL('People.csv');
+  const JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/People.json';
+  const FALLBACK_JSON_URL = chrome.runtime.getURL('People.json');
+  const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
   const DEFAULT_SETTINGS = {
     enabled: true,
@@ -20,8 +21,12 @@
   let panelVisible = false;
   let panelEls = {};
 
+  function normalizeField(value) {
+    return String(value || '').trim();
+  }
+
   function normalizeUser(value) {
-    return (value || '').trim().toLowerCase();
+    return normalizeField(value).toLowerCase();
   }
 
   function extractUserFromHref(href) {
@@ -100,153 +105,70 @@
     ].join('\u0001');
   }
 
-  function getColumnIndexMap(headerRow) {
-    const map = new Map();
+  function normalizeTrophy(raw, fallbackClickHref) {
+    if (!raw || typeof raw !== 'object') return null;
 
-    headerRow.forEach((value, index) => {
-      const key = String(value || '')
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '');
+    const url = normalizeField(raw.url || raw.image || raw.src || raw.trophiesUrl || raw.trophyUrl);
+    if (!url) return null;
 
-      if (key) {
-        map.set(key, index);
-      }
-    });
-
-    return map;
-  }
-
-  function readColumn(row, indexMap, keys, fallbackIndex) {
-    if (indexMap) {
-      for (const key of keys) {
-        const normalized = String(key)
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '');
-        const index = indexMap.get(normalized);
-
-        if (index != null && row[index] != null) {
-          return row[index];
-        }
-      }
-    }
-
-    return row[fallbackIndex] || '';
-  }
-
-  function readFirstNonEmptyColumn(row, indexMap, keys, fallbackIndexes) {
-    if (indexMap) {
-      for (const key of keys) {
-        const normalized = String(key)
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '');
-        const index = indexMap.get(normalized);
-
-        if (index != null && row[index] != null && String(row[index]).trim() !== '') {
-          return row[index];
-        }
-      }
-    }
-
-    for (const index of fallbackIndexes) {
-      if (row[index] != null && String(row[index]).trim() !== '') {
-        return row[index];
-      }
-    }
-
-    return '';
-  }
-
-  function splitMultiValue(value) {
-    return String(value || '')
-      .split('|')
-      .map((part) => part.trim())
-      .filter(Boolean);
-  }
-
-  function parseCsv(text) {
-    const rows = [];
-    let row = [];
-    let field = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < text.length; i += 1) {
-      const char = text[i];
-      const next = text[i + 1];
-
-      if (inQuotes) {
-        if (char === '"' && next === '"') {
-          field += '"';
-          i += 1;
-        } else if (char === '"') {
-          inQuotes = false;
-        } else {
-          field += char;
-        }
-        continue;
-      }
-
-      if (char === '"') {
-        inQuotes = true;
-        continue;
-      }
-
-      if (char === ',') {
-        row.push(field);
-        field = '';
-        continue;
-      }
-
-      if (char === '\r') {
-        continue;
-      }
-
-      if (char === '\n') {
-        row.push(field);
-        if (row.some((value) => value.trim() !== '')) {
-          rows.push(row);
-        }
-        row = [];
-        field = '';
-        continue;
-      }
-
-      field += char;
-    }
-
-    row.push(field);
-    if (row.some((value) => value.trim() !== '')) {
-      rows.push(row);
-    }
-
-    return rows;
+    return {
+      url,
+      href: normalizeField(raw.href || raw.link || raw.clickHref || fallbackClickHref || '/player/top/blitz') || '/player/top/blitz',
+      title: normalizeField(raw.title || raw.name || raw.label || 'Top Blitz Player') || 'Top Blitz Player',
+      className: normalizeField(raw.className || raw.class || 'trophy perf top1') || 'trophy perf top1',
+      content: normalizeField(raw.content || raw.text || raw.symbol || '')
+    };
   }
 
   function parsePlayers(text) {
-    const rows = parseCsv(text);
-    if (!rows.length) return [];
+    let parsed;
 
-    const header = rows[0].map((value) => String(value || '').trim().toLowerCase());
-    const hasHeader = header.includes('username') || header.includes('name') || header.includes('trophiesurl');
-    const indexMap = hasHeader ? getColumnIndexMap(rows[0]) : null;
-    const dataRows = hasHeader ? rows.slice(1) : rows;
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      console.error('JSON parse failed:', error);
+      return [];
+    }
 
-    return dataRows
-      .map((row) => {
-        const name = normalizeUser(readColumn(row, indexMap, ['username', 'name'], 0));
+    const rows = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed.players)
+        ? parsed.players
+        : [];
+
+    return rows
+      .map((raw) => {
+        const name = normalizeUser(raw.username || raw.name || raw.id);
         if (!name) return null;
 
-        const title = (readColumn(row, indexMap, ['title'], 1) || '').trim();
-        const displayName = (readColumn(row, indexMap, ['displayname', 'display name'], 2) || '').trim();
-        const flair = (readColumn(row, indexMap, ['flair'], 3) || '').trim();
-        const trophiesUrl = (readColumn(row, indexMap, ['trophiesurl', 'trophies url', 'trophies'], 4) || '').trim();
-        const trophyHref = (readFirstNonEmptyColumn(row, indexMap, ['trophyhref', 'trophy href'], [5]) || '').trim();
-        const trophyTitle = (readFirstNonEmptyColumn(row, indexMap, ['trophytitle', 'trophy title'], [6]) || '').trim();
-        const trophyClass = (readFirstNonEmptyColumn(row, indexMap, ['trophyclass', 'trophy class'], [7]) || '').trim();
-        const trophyContent = (readFirstNonEmptyColumn(row, indexMap, ['trophycontent', 'trophy content'], [8]) || '').trim();
+        const title = normalizeField(raw.title);
+        const displayName = normalizeField(raw.displayName || raw.display_name);
+        const flair = normalizeField(raw.flair);
+        const clickHref = normalizeField(raw.clickHref || raw.click_href || raw.linkHref || raw.link_href);
+
+        const rawTrophies = Array.isArray(raw.trophies) ? raw.trophies : [];
+        const trophies = rawTrophies
+          .map((trophy) => normalizeTrophy(trophy, clickHref))
+          .filter(Boolean);
+
+        if (!trophies.length) {
+          const legacyTrophy = normalizeTrophy({
+            url: raw.trophiesUrl || raw.trophyUrl || raw.url,
+            href: raw.trophyHref,
+            title: raw.trophyTitle || title,
+            className: raw.trophyClass,
+            content: raw.trophyContent
+          }, clickHref);
+
+          if (legacyTrophy) {
+            trophies.push(legacyTrophy);
+          }
+        }
+
         const cleanTitle = !title || title.toLowerCase() === 'title' ? '' : title;
+        const trophySig = trophies
+          .map((trophy) => [trophy.url, trophy.href, trophy.title, trophy.className, trophy.content].join('\u0000'))
+          .join('\u0001');
 
         return {
           name,
@@ -254,16 +176,9 @@
           title: cleanTitle,
           displayName,
           flair,
-          trophiesUrl,
-          trophyHref,
-          trophyTitle,
-          trophyClass,
-          trophyContent,
-          trophyUrls: splitMultiValue(trophiesUrl),
-          trophyHrefs: splitMultiValue(trophyHref),
-          trophyTitles: splitMultiValue(trophyTitle),
-          trophyClasses: splitMultiValue(trophyClass),
-          trophyContents: splitMultiValue(trophyContent),
+          clickHref,
+          trophies,
+          trophySig,
           badge: createBadge(cleanTitle)
         };
       })
@@ -271,22 +186,22 @@
   }
 
   function loadData() {
-    return fetch(CSV_URL, { cache: 'no-store', mode: 'cors' })
+    return fetch(JSON_URL, { cache: 'no-store', mode: 'cors' })
       .then((response) => response.text())
       .then((text) => {
         players = parsePlayers(text);
         console.log('Loaded players:', players);
       })
       .catch((error) => {
-        console.error('CSV load failed, trying local fallback:', error);
-        return fetch(FALLBACK_CSV_URL, { cache: 'no-store' })
+        console.error('JSON load failed, trying local fallback:', error);
+        return fetch(FALLBACK_JSON_URL, { cache: 'no-store' })
           .then((response) => response.text())
           .then((text) => {
             players = parsePlayers(text);
             console.log('Loaded fallback players:', players);
           })
           .catch((fallbackError) => {
-            console.error('Fallback CSV load failed:', fallbackError);
+            console.error('Fallback JSON load failed:', fallbackError);
             players = [];
           });
       });
@@ -357,62 +272,39 @@
     const container = ensureTrophiesContainer(el);
     if (!container) return;
 
-    const trophyUrls = player.trophyUrls && player.trophyUrls.length ? player.trophyUrls : (player.trophiesUrl ? [player.trophiesUrl] : []);
-    const trophyHrefs = player.trophyHrefs && player.trophyHrefs.length ? player.trophyHrefs : (player.trophyHref ? [player.trophyHref] : []);
-    const trophyTitles = player.trophyTitles && player.trophyTitles.length ? player.trophyTitles : (player.trophyTitle ? [player.trophyTitle] : []);
-    const trophyClasses = player.trophyClasses && player.trophyClasses.length ? player.trophyClasses : (player.trophyClass ? [player.trophyClass] : []);
-    const trophyContents = player.trophyContents && player.trophyContents.length ? player.trophyContents : (player.trophyContent ? [player.trophyContent] : []);
-
-    const signature = [
-      trophyUrls.join('|'),
-      trophyHrefs.join('|'),
-      trophyTitles.join('|'),
-      trophyClasses.join('|'),
-      trophyContents.join('|')
-    ].join('\u0001');
+    const trophies = Array.isArray(player.trophies) ? player.trophies : [];
+    const signature = player.trophySig || trophies
+      .map((trophy) => [trophy.url, trophy.href, trophy.title, trophy.className, trophy.content].join('\u0000'))
+      .join('\u0001');
     if (container.dataset.injectedTrophySig === signature) {
       return;
     }
 
     container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
-    if (!trophyUrls.length) {
+    if (!trophies.length) {
       delete container.dataset.injectedTrophySig;
       return;
     }
 
-    const count = Math.max(
-      trophyUrls.length,
-      trophyHrefs.length,
-      trophyTitles.length,
-      trophyClasses.length,
-      trophyContents.length
-    );
-
-    for (let index = 0; index < count; index += 1) {
-      const trophiesUrl = trophyUrls[index] || trophyUrls[0] || '';
-      if (!trophiesUrl) continue;
-
-      const trophyHref = trophyHrefs[index] || trophyHrefs[0] || '/player/top/blitz';
-      const trophyTitle = trophyTitles[index] || trophyTitles[0] || 'Top Blitz Player';
-      const trophyClass = trophyClasses[index] || trophyClasses[0] || 'trophy perf top1';
-      const trophyContent = trophyContents[index] || trophyContents[0] || '';
+    for (const trophy of trophies) {
+      if (!trophy.url) continue;
 
       const link = document.createElement('a');
-      link.href = trophyHref;
+      link.href = trophy.href || player.clickHref || '/player/top/blitz';
       link.className = 'injected-trophy';
 
       const span = document.createElement('span');
-      span.className = trophyClass;
-      span.title = trophyTitle;
-      span.setAttribute('aria-label', trophyTitle);
+      span.className = trophy.className || 'trophy perf top1';
+      span.title = trophy.title || 'Top Blitz Player';
+      span.setAttribute('aria-label', trophy.title || 'Top Blitz Player');
 
-      if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophiesUrl) || /^data:image\//i.test(trophiesUrl)) {
+      if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophy.url) || /^data:image\//i.test(trophy.url)) {
         const img = document.createElement('img');
-        img.src = trophiesUrl;
-        img.alt = trophyTitle;
+        img.src = trophy.url;
+        img.alt = trophy.title || 'Top Blitz Player';
         span.appendChild(img);
       } else {
-        span.textContent = trophyContent || '';
+        span.textContent = trophy.content || DEFAULT_TROPHY_CONTENT;
       }
 
       link.appendChild(span);
@@ -640,11 +532,8 @@
         player.displayName,
         player.title,
         player.flair,
-        player.trophiesUrl,
-        player.trophyHref,
-        player.trophyTitle,
-        player.trophyClass,
-        player.trophyContent,
+        player.clickHref,
+        player.trophySig,
         settingsSignature()
       ].join('\u0001');
 
@@ -657,11 +546,8 @@
       }
 
       if (settings.changeDisplayName) {
-        if (player.displayName) {
-          replaceName(el, player.displayName);
-        } else if (el.dataset.originalName) {
-          replaceName(el, '');
-        }
+        if (player.displayName) replaceName(el, player.displayName);
+        else replaceName(el, '');
       } else {
         replaceName(el, '');
       }

@@ -1,0 +1,18 @@
+[
+  {
+    "username": "Ajisland",
+    "title": "LG",
+    "displayName": "",
+    "flair": "",
+    "clickHref": "/player/top/blitz",
+    "trophies": [
+      {
+        "url": "https://lichess1.org/assets/hashed/gold-cup-2.e1e2ac3f.png",
+        "href": "/player/top/blitz",
+        "title": "Top Blitz Player",
+        "className": "trophy perf top1",
+        "content": "Top Blitz Player"
+      }
+    ]
+  }
+]
