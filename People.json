@@ -14,7 +14,10 @@
         "content": "Original Creator Of LichessTrophy",
         "offsetY": 10,
         "offsetX": 10,
-        "scale": 4
+        "scale": 4,
+        "glowEnabled": true,
+        "rgb": "rgb(180, 180, 180)",
+        "intensity": 8
       }
     ]
   }

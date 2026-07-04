@@ -42,6 +42,18 @@
     return Number.isFinite(num) ? num : fallback;
   }
 
+  function parseBoolean(value) {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'yes', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'no', 'off'].includes(normalized)) return false;
+    }
+
+    return null;
+  }
+
   function normalizeUser(value) {
     return normalizeField(value).toLowerCase();
   }
@@ -180,6 +192,69 @@
     };
   }
 
+  function normalizeGlowColor(value) {
+    if (Array.isArray(value) && value.length >= 3) {
+      const [r, g, b, a] = value;
+      if ([r, g, b].every((part) => Number.isFinite(Number(part)))) {
+        return a === undefined
+          ? `rgb(${Number(r)}, ${Number(g)}, ${Number(b)})`
+          : `rgba(${Number(r)}, ${Number(g)}, ${Number(b)}, ${Number(a)})`;
+      }
+    }
+
+    if (value && typeof value === 'object') {
+      const r = value.r ?? value.red;
+      const g = value.g ?? value.green;
+      const b = value.b ?? value.blue;
+      const a = value.a ?? value.alpha;
+      if ([r, g, b].every((part) => Number.isFinite(Number(part)))) {
+        return a === undefined
+          ? `rgb(${Number(r)}, ${Number(g)}, ${Number(b)})`
+          : `rgba(${Number(r)}, ${Number(g)}, ${Number(b)}, ${Number(a)})`;
+      }
+    }
+
+    return normalizeField(value);
+  }
+
+  function isOriginalCreatorAward(label, url) {
+    const text = `${normalizeField(label)} ${normalizeField(url)}`.toLowerCase();
+    return text.includes('original creator');
+  }
+
+  function getAwardVisualStyles(award) {
+    const label = award?.title || award?.content || '';
+    const url = award?.url || '';
+    const glowEnabled = parseBoolean(award?.glowEnabled ?? award?.glow) ?? false;
+    const glowColor = normalizeGlowColor(award?.glowColor ?? award?.glowRgb ?? award?.rgb);
+    const glowIntensity = parseNumber(award?.glowIntensity ?? award?.intensity, null);
+
+    if (isOriginalCreatorAward(label, url)) {
+      return {
+        base: '0 0 6px rgba(170, 170, 170, 0.78)',
+        hover: '0 0 11px rgba(190, 190, 190, 0.92), 0 0 5px rgba(210, 210, 210, 0.72)',
+        hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
+      };
+    }
+
+    if (glowEnabled && glowIntensity !== null && glowIntensity > 0 && glowColor) {
+      const baseBlur = Math.max(1, Math.round(glowIntensity));
+      const hoverBlur = Math.max(baseBlur + 2, Math.round(baseBlur * 1.6));
+      return {
+        base: `0 0 ${baseBlur}px ${glowColor}`,
+        hover: `0 0 ${hoverBlur}px ${glowColor}, 0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${glowColor}`,
+        hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
+      };
+    }
+
+    const glow = getAwardGlowStyles();
+    return {
+      base: glow.base,
+      hover: glow.hover,
+      hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
+    };
+  }
+
   function normalizeTrophy(raw, fallbackClickHref) {
     if (!raw || typeof raw !== 'object') return null;
 
@@ -190,6 +265,9 @@
     const offsetX = parseNumber(raw.offsetX ?? raw.offset_x ?? raw.x ?? raw.shiftX, 0);
     const offsetY = parseNumber(raw.offsetY ?? raw.offset_y ?? raw.y ?? raw.shiftY, 0);
     const scale = parseNumber(raw.scale ?? raw.size ?? raw.zoom, 1);
+    const glowEnabled = parseBoolean(raw.glowEnabled ?? raw.glow);
+    const glowIntensity = parseNumber(raw.glowIntensity ?? raw.intensity, null);
+    const glowColor = normalizeGlowColor(raw.glowColor ?? raw.glowRgb ?? raw.rgb);
 
     return {
       url,
@@ -200,7 +278,10 @@
       content: normalizeField(raw.content || raw.text || raw.symbol || ''),
       offsetX,
       offsetY,
-      scale
+      scale,
+      glowEnabled,
+      glowIntensity,
+      glowColor
     };
   }
 
@@ -259,7 +340,10 @@
             trophy.content,
             trophy.offsetX,
             trophy.offsetY,
-            trophy.scale
+            trophy.scale,
+            trophy.glowEnabled,
+            trophy.glowIntensity,
+            trophy.glowColor
           ].join('\u0000'))
           .join('\u0001');
 
@@ -336,7 +420,10 @@
             badge.content,
             badge.offsetX,
             badge.offsetY,
-            badge.scale
+            badge.scale,
+            badge.glowEnabled,
+            badge.glowIntensity,
+            badge.glowColor
           ].join('\u0000'))
           .join('\u0001');
 
@@ -508,7 +595,6 @@
   function setTrophies(el, player) {
     const container = ensureTrophiesContainer(el);
     if (!container) return;
-    const glow = getAwardGlowStyles();
 
     const trophies = Array.isArray(player.trophies) ? player.trophies : [];
     const signature = player.trophySig || trophies
@@ -535,6 +621,7 @@
 
     for (const trophy of trophies) {
       if (!trophy.url) continue;
+      const awardStyles = getAwardVisualStyles(trophy);
 
       const link = document.createElement('a');
       link.href = trophy.clickUrl || trophy.href || player.clickHref || '/player/top/blitz';
@@ -547,24 +634,24 @@
       link.style.verticalAlign = 'middle';
       link.style.position = 'relative';
       link.style.zIndex = '1';
-      link.style.transition = 'transform 140ms ease, filter 140ms ease, opacity 140ms ease';
+      link.style.transition = 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms ease, opacity 220ms ease, box-shadow 220ms ease';
       link.style.transformOrigin = 'center center';
       link.style.backfaceVisibility = 'hidden';
       link.style.transform = 'translateZ(0)';
       link.style.willChange = 'transform';
-      link.style.boxShadow = glow.base;
+      link.style.boxShadow = awardStyles.base;
       link.style.borderRadius = '4px';
       link.addEventListener('mouseenter', () => {
         link.style.zIndex = '5';
-        link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
+        link.style.transform = awardStyles.hoverTransform;
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
-        link.style.boxShadow = glow.hover;
+        link.style.boxShadow = awardStyles.hover;
       });
       link.addEventListener('mouseleave', () => {
         link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
-        link.style.boxShadow = glow.base;
+        link.style.boxShadow = awardStyles.base;
       });
 
       const span = document.createElement('span');
@@ -617,7 +704,6 @@
     if (header.parentElement) {
       header.parentElement.style.overflow = 'visible';
     }
-    const glow = getAwardGlowStyles();
 
     const badges = Array.isArray(team.badges) ? team.badges : [];
     const signature = team.badgeSig || badges
@@ -652,6 +738,7 @@
       if (!badge.url) continue;
       const title = badge.title || team.title || 'Team badge';
       const href = badge.clickUrl || badge.href || team.clickHref || '#';
+      const awardStyles = getAwardVisualStyles(badge);
 
       const link = document.createElement('a');
       link.href = href;
@@ -669,13 +756,13 @@
       link.style.pointerEvents = 'auto';
       link.style.overflow = 'visible';
       link.style.transformOrigin = 'center center';
-      link.style.transition = 'transform 140ms ease, filter 140ms ease, opacity 140ms ease';
+      link.style.transition = 'transform 220ms cubic-bezier(0.22, 1, 0.36, 1), filter 220ms ease, opacity 220ms ease, box-shadow 220ms ease';
       link.style.willChange = 'transform';
       link.style.backfaceVisibility = 'hidden';
       link.style.transform = 'translateZ(0)';
       link.style.lineHeight = '0';
       link.style.zIndex = '1';
-      link.style.boxShadow = glow.base;
+      link.style.boxShadow = awardStyles.base;
       link.style.borderRadius = '4px';
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
@@ -684,15 +771,15 @@
       });
       link.addEventListener('mouseenter', () => {
         link.style.zIndex = '5';
-        link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
+        link.style.transform = awardStyles.hoverTransform;
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
-        link.style.boxShadow = glow.hover;
+        link.style.boxShadow = awardStyles.hover;
       });
       link.addEventListener('mouseleave', () => {
         link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
-        link.style.boxShadow = glow.base;
+        link.style.boxShadow = awardStyles.base;
       });
 
       const inner = document.createElement('span');
