@@ -1,8 +1,6 @@
 (function () {
   'use strict';
 
-  const PEOPLE_JSON_URL = `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/contents/People.json?ref=main&t=${Date.now()}`;
-  const TEAMS_JSON_URL = `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/contents/Teams.json?ref=main&t=${Date.now()}`;
   const FALLBACK_PEOPLE_JSON_URL = chrome.runtime.getURL('People.json');
   const FALLBACK_TEAMS_JSON_URL = chrome.runtime.getURL('Teams.json');
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
@@ -292,43 +290,36 @@
       .filter(Boolean);
   }
 
-  function decodeGitHubContent(text) {
-    let parsed;
-
-    try {
-      parsed = JSON.parse(text);
-    } catch (error) {
-      return text;
-    }
-
-    if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
-      const content = parsed.content.replace(/\n/g, '');
-      if (parsed.encoding === 'base64') {
-        try {
-          return decodeURIComponent(
-            Array.prototype.map.call(atob(content), (char) =>
-              `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`
-            ).join('')
-          );
-        } catch (error) {
-          try {
-            return atob(content);
-          } catch (innerError) {
-            return text;
-          }
+  async function fetchRepoSha() {
+    const branchRes = await fetch(
+      `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/commits/main?t=${Date.now()}`,
+      {
+        cache: 'no-store',
+        mode: 'cors',
+        headers: {
+          Accept: 'application/vnd.github+json'
         }
       }
+    );
+
+    if (!branchRes.ok) {
+      throw new Error(`Branch lookup failed with status ${branchRes.status}`);
     }
 
-    return text;
+    const branchData = await branchRes.json();
+    return branchData && branchData.sha ? branchData.sha : '';
   }
 
-  function loadJsonSource(url, fallbackUrl, label) {
+  async function loadJsonSource(fileName, fallbackUrl, label, sha) {
+    const url = sha
+      ? `https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/${sha}/${fileName}?t=${Date.now()}`
+      : `https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/${fileName}?t=${Date.now()}`;
+
     return fetch(url, {
       cache: 'no-store',
       mode: 'cors',
       headers: {
-        Accept: 'application/vnd.github.raw+json'
+        Accept: 'application/json'
       }
     })
       .then((response) => {
@@ -338,7 +329,6 @@
 
         return response.text();
       })
-      .then((text) => decodeGitHubContent(text))
       .catch((error) => {
         console.error(`${label} JSON load failed, trying local fallback:`, error);
         return fetch(fallbackUrl, { cache: 'no-store' })
@@ -349,7 +339,6 @@
 
             return response.text();
           })
-          .then((text) => text)
           .catch((fallbackError) => {
             console.error(`Fallback ${label} JSON load failed:`, fallbackError);
             return '[]';
@@ -358,9 +347,17 @@
   }
 
   async function loadData() {
+    let sha = '';
+
+    try {
+      sha = await fetchRepoSha();
+    } catch (error) {
+      console.error('GitHub SHA lookup failed, falling back to main:', error);
+    }
+
     const [peopleText, teamsText] = await Promise.all([
-      loadJsonSource(PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People'),
-      loadJsonSource(TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams')
+      loadJsonSource('People.json', FALLBACK_PEOPLE_JSON_URL, 'People', sha),
+      loadJsonSource('Teams.json', FALLBACK_TEAMS_JSON_URL, 'Teams', sha)
     ]);
 
     players = parsePlayers(peopleText);
