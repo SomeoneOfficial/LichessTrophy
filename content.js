@@ -553,23 +553,36 @@
 
     for (const badge of badges) {
       if (!badge.url) continue;
+      const title = badge.title || team.title || 'Team badge';
+      const href = badge.clickUrl || badge.href || team.clickHref || '#';
 
       const link = document.createElement('a');
-      link.href = badge.clickUrl || badge.href || team.clickHref || '#';
-      link.className = `${badge.className || 'uflair'} injected-team-badge`;
-      link.title = badge.title || team.title || 'Team badge';
+      link.href = href;
+      link.className = `${badge.className || 'trophy award icon3d'} injected-team-badge`;
+      link.title = title;
+      link.setAttribute('data-tooltip', title);
+      link.setAttribute('aria-label', title);
       link.target = '_self';
       link.rel = 'noreferrer';
-      link.style.display = 'inline-block';
+      link.style.display = 'inline-flex';
+      link.style.alignItems = 'center';
       link.style.textDecoration = 'none';
       link.style.verticalAlign = 'middle';
       link.style.cursor = 'pointer';
+      link.style.pointerEvents = 'auto';
+      link.addEventListener('click', (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        window.location.assign(href);
+      });
 
       const inner = document.createElement('span');
       inner.className = 'injected-team-badge-inner';
-      inner.title = badge.title || team.title || 'Team badge';
-      inner.setAttribute('aria-label', badge.title || team.title || 'Team badge');
-      inner.style.display = 'inline-block';
+      inner.title = title;
+      inner.setAttribute('aria-label', title);
+      inner.style.display = 'inline-flex';
+      inner.style.alignItems = 'center';
+      inner.style.justifyContent = 'center';
       inner.style.verticalAlign = 'middle';
       inner.style.lineHeight = '0';
 
@@ -584,12 +597,13 @@
       if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(badge.url) || /^data:image\//i.test(badge.url)) {
         const img = document.createElement('img');
         img.src = badge.url;
-        img.alt = badge.title || team.title || 'Team badge';
-        img.title = badge.title || team.title || 'Team badge';
-        img.className = 'uflair';
+        img.alt = title;
+        img.title = title;
+        img.className = 'injected-team-badge-image';
         img.style.display = 'block';
         img.style.maxWidth = '18px';
         img.style.maxHeight = '18px';
+        img.style.pointerEvents = 'none';
         inner.appendChild(img);
       } else {
         inner.textContent = badge.content || DEFAULT_TROPHY_CONTENT;
