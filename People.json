@@ -16,7 +16,7 @@
         "offsetX": 8,
         "scale": 4,
         "glowEnabled": true,
-        "rgb": "rgb(8, 1, 99)",
+        "rgb": "rgb(180, 180, 180)",
         "intensity": 8
       }
     ]
@@ -37,7 +37,7 @@
         "offsetX": 8,
         "scale": 4,
         "glowEnabled": true,
-        "rgb": "rgb(180, 180, 180)",
+        "rgb": "rgb(8, 1, 99)",
         "intensity": 3
       }
     ]
