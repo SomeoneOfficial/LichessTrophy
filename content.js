@@ -3,7 +3,10 @@
 
   const PEOPLE_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/People.json';
   const TEAMS_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/Teams.json';
+  const VERSION_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/Version';
+  const REPO_URL = 'https://github.com/SomeoneOfficial/LichessTrophy';
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
+  const INSTALLED_VERSION = chrome.runtime.getManifest().version;
 
   const DEFAULT_SETTINGS = {
     enabled: true,
@@ -21,6 +24,11 @@
   let panelRoot = null;
   let panelVisible = false;
   let panelEls = {};
+  let versionInfo = {
+    status: 'checking',
+    remoteVersion: '',
+    installedVersion: INSTALLED_VERSION
+  };
 
   function normalizeField(value) {
     return String(value || '').trim();
@@ -40,6 +48,25 @@
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  function normalizeVersion(value) {
+    return normalizeField(value)
+      .replace(/^v/i, '')
+      .replace(/[^\d.]/g, '');
+  }
+
+  function compareVersions(a, b) {
+    const left = normalizeVersion(a).split('.').map((part) => Number(part) || 0);
+    const right = normalizeVersion(b).split('.').map((part) => Number(part) || 0);
+    const length = Math.max(left.length, right.length);
+
+    for (let index = 0; index < length; index += 1) {
+      const diff = (left[index] || 0) - (right[index] || 0);
+      if (diff !== 0) return diff;
+    }
+
+    return 0;
   }
 
   function extractUserFromHref(href) {
@@ -329,6 +356,50 @@
       players = [];
       teams = [];
     }
+  }
+
+  async function checkVersion() {
+    versionInfo = {
+      status: 'checking',
+      remoteVersion: '',
+      installedVersion: INSTALLED_VERSION
+    };
+    syncPanel();
+
+    try {
+      const response = await fetch(VERSION_URL, {
+        cache: 'no-store',
+        mode: 'cors',
+        headers: {
+          Accept: 'text/plain'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Version request failed with status ${response.status}`);
+      }
+
+      const remoteVersion = normalizeField(await response.text());
+      if (!remoteVersion) {
+        throw new Error('Version file was empty');
+      }
+
+      const comparison = compareVersions(INSTALLED_VERSION, remoteVersion);
+      versionInfo = {
+        status: comparison < 0 ? 'update-available' : 'up-to-date',
+        remoteVersion,
+        installedVersion: INSTALLED_VERSION
+      };
+    } catch (error) {
+      console.error('Version check failed:', error);
+      versionInfo = {
+        status: 'error',
+        remoteVersion: '',
+        installedVersion: INSTALLED_VERSION
+      };
+    }
+
+    syncPanel();
   }
 
   function getPrimaryTextNode(el) {
@@ -633,6 +704,32 @@
     panelEls.flair.checked = !!settings.showFlair;
     panelEls.trophy.checked = !!settings.showTrophy;
     panelEls.body.classList.toggle('is-disabled', !settings.enabled);
+    if (panelEls.versionStatus) {
+      panelEls.versionStatus.className = 'version-status';
+      if (versionInfo.status === 'update-available') {
+        panelEls.versionStatus.classList.add('is-update');
+        panelEls.versionStatus.textContent = `Update available: ${versionInfo.remoteVersion}`;
+      } else if (versionInfo.status === 'up-to-date') {
+        panelEls.versionStatus.classList.add('is-ok');
+        panelEls.versionStatus.textContent = `Up to date: ${versionInfo.installedVersion}`;
+      } else if (versionInfo.status === 'error') {
+        panelEls.versionStatus.classList.add('is-error');
+        panelEls.versionStatus.textContent = 'Update check failed';
+      } else {
+        panelEls.versionStatus.textContent = 'Checking for updates...';
+      }
+    }
+    if (panelEls.versionDetail) {
+      if (versionInfo.status === 'update-available') {
+        panelEls.versionDetail.textContent = 'Re-download from the repo to update.';
+      } else if (versionInfo.status === 'up-to-date') {
+        panelEls.versionDetail.textContent = 'You are running the latest version.';
+      } else if (versionInfo.status === 'error') {
+        panelEls.versionDetail.textContent = 'Could not read the remote Version file.';
+      } else {
+        panelEls.versionDetail.textContent = '';
+      }
+    }
     panelRoot.style.display = panelVisible ? 'block' : 'none';
   }
 
@@ -724,6 +821,47 @@
           color: rgba(243,244,246,0.72);
           line-height: 1.4;
         }
+        .version-box {
+          border: 1px solid rgba(255,255,255,0.1);
+          border-radius: 10px;
+          padding: 10px;
+          background: rgba(255,255,255,0.04);
+          display: grid;
+          gap: 6px;
+          font-size: 11px;
+          line-height: 1.4;
+        }
+        .version-label {
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: rgba(243,244,246,0.55);
+        }
+        .version-status {
+          font-size: 12px;
+          font-weight: 700;
+        }
+        .version-status.is-update {
+          color: #f6c177;
+        }
+        .version-status.is-ok {
+          color: #8be9a8;
+        }
+        .version-status.is-error {
+          color: #ff9b9b;
+        }
+        .version-links {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+        .version-links a {
+          color: #9ec1ff;
+          text-decoration: none;
+        }
+        .version-links a:hover {
+          text-decoration: underline;
+        }
         .is-disabled {
           opacity: 0.55;
         }
@@ -740,6 +878,15 @@
           <label class="row"><span>Show badge</span><input type="checkbox" data-setting="showBadge"></label>
           <label class="row"><span>Show flair</span><input type="checkbox" data-setting="showFlair"></label>
           <label class="row"><span>Show trophy</span><input type="checkbox" data-setting="showTrophy"></label>
+          <div class="version-box">
+            <div class="version-label">Version</div>
+            <div class="version-status" data-version-status>Checking for updates...</div>
+            <div class="note" data-version-detail></div>
+            <div class="version-links">
+              <a href="${REPO_URL}" target="_blank" rel="noreferrer">Open repo</a>
+              <a href="${REPO_URL}/releases" target="_blank" rel="noreferrer">Releases</a>
+            </div>
+          </div>
           <div class="note">Changes save automatically and apply immediately.</div>
         </div>
       </div>
@@ -752,6 +899,8 @@
     const badge = shadow.querySelector('[data-setting="showBadge"]');
     const flair = shadow.querySelector('[data-setting="showFlair"]');
     const trophy = shadow.querySelector('[data-setting="showTrophy"]');
+    const versionStatus = shadow.querySelector('[data-version-status]');
+    const versionDetail = shadow.querySelector('[data-version-detail]');
     const toggleButton = shadow.querySelector('[data-action="toggle-panel"]');
 
     panelEls = {
@@ -761,7 +910,9 @@
       displayName,
       badge,
       flair,
-      trophy
+      trophy,
+      versionStatus,
+      versionDetail
     };
 
     const bind = (key, element) => {
@@ -933,6 +1084,7 @@
     await loadSettings();
     syncPanel();
     await loadData();
+    await checkVersion();
     inject();
     observe();
   }
