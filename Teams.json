@@ -8,7 +8,7 @@
         "url": "https://lichess1.org/assets/______4/flair/img/activity.chess.webp",
         "clickUrl": "/team/the-chess-fan-club/members",
         "title": "The Chess Fan Club",
-        "className": "uflair",
+        "className": "trophy perf top1",
         "offsetX": 4,
         "offsetY": 0,
         "scale": 1
