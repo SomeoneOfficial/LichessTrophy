@@ -35,10 +35,10 @@
         "content": "First Users",
         "offsetY": 0,
         "offsetX": 8,
-        "scale": 8,
+        "scale": 6,
         "glowEnabled": true,
         "rgb": "rgb(8, 1, 99)",
-        "intensity": 100
+        "intensity": 80
       }
     ]
   }
