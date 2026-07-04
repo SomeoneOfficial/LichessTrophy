@@ -380,7 +380,12 @@
     if (firstTrophy) {
       container.insertBefore(link, firstTrophy);
     } else {
+    const firstTrophy = container.querySelector('a.trophy, a.injected-trophy');
+    if (firstTrophy) {
+      container.insertBefore(link, firstTrophy);
+    } else {
       container.prepend(link);
+    }
     }
 
     container.dataset.injectedTrophySig = signature;
