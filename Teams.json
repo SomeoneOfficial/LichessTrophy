@@ -11,7 +11,7 @@
         "className": "trophy perf top1",
         "offsetX": 4,
         "offsetY": -1,
-        "scale": 3,
+        "scale": 5,
         "glowEnabled": true,
         "rgb": "rgb(180, 180, 180)",
         "intensity": 8
