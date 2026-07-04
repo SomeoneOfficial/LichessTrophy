@@ -630,17 +630,19 @@
       link.style.transformOrigin = 'center center';
       link.style.transition = 'transform 140ms ease, filter 140ms ease, opacity 140ms ease';
       link.style.willChange = 'transform';
+      link.style.backfaceVisibility = 'hidden';
+      link.style.transform = 'translateZ(0)';
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
         event.preventDefault();
         window.location.assign(href);
       });
       link.addEventListener('mouseenter', () => {
-        link.style.transform = 'translateY(-2px) scale(1.08)';
+        link.style.transform = 'translate3d(0, -4px, 0) scale(1.1)';
         link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
       });
       link.addEventListener('mouseleave', () => {
-        link.style.transform = 'none';
+        link.style.transform = 'translateZ(0)';
         link.style.filter = 'none';
       });
 
@@ -978,75 +980,75 @@
     const currentProfileUser = getCurrentProfileUser();
     const player = players.find((entry) => usersMatchExact(entry.id, currentProfileUser));
 
-    document.querySelectorAll('.user-link').forEach((el) => {
-      if (el.dataset.injectedFor) clearInjected(el);
-    });
+    if (player) {
+      document.querySelectorAll('.user-link').forEach((el) => {
+        if (el.dataset.injectedFor) clearInjected(el);
+      });
 
-    if (!player) {
-      return;
-    }
+      const elements = Array.from(document.querySelectorAll('.user-link')).filter((el) =>
+        usersMatchExact(resolveUserForElement(el), currentProfileUser)
+      );
 
-    const elements = Array.from(document.querySelectorAll('.user-link')).filter((el) =>
-      usersMatchExact(resolveUserForElement(el), currentProfileUser)
-    );
+      elements.forEach((el) => {
+        const signature = [
+          player.displayName,
+          player.title,
+          player.flair,
+          player.clickHref,
+          player.trophySig,
+          settingsSignature()
+        ].join('\u0001');
 
-    elements.forEach((el) => {
-      const currentUser = resolveUserForElement(el);
-
-      const signature = [
-        player.displayName,
-        player.title,
-        player.flair,
-        player.clickHref,
-        player.trophySig,
-        settingsSignature()
-      ].join('\u0001');
-
-      if (el.dataset.injectedFor === player.id && el.dataset.injectedSig === signature) {
-        return;
-      }
-
-      if (el.dataset.injectedFor && el.dataset.injectedFor !== player.id) {
-        clearInjected(el);
-      }
-
-      if (settings.changeDisplayName) {
-        if (player.displayName) replaceName(el, player.displayName);
-        else replaceName(el, '');
-      } else {
-        replaceName(el, '');
-      }
-
-      el.querySelectorAll('.injected-badge').forEach((badge) => badge.remove());
-      if (settings.showBadge && settings.changeTitle && player.badge) {
-        const wrapper = document.createElement('span');
-        wrapper.innerHTML = player.badge;
-        const badgeNode = wrapper.firstChild;
-        const icon = el.querySelector('icon.line, i.line');
-
-        if (icon) icon.insertAdjacentElement('afterend', badgeNode);
-        else el.prepend(badgeNode);
-      }
-
-      if (settings.showFlair) {
-        setFlair(el, player.flair);
-      } else {
-        setFlair(el, '');
-      }
-
-      if (settings.showTrophy) {
-        setTrophies(el, player);
-      } else {
-        const container = findTrophiesContainer(el);
-        if (container) {
-          container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
-          delete container.dataset.injectedTrophySig;
+        if (el.dataset.injectedFor === player.id && el.dataset.injectedSig === signature) {
+          return;
         }
-      }
 
-      el.dataset.injectedFor = player.id;
-      el.dataset.injectedSig = signature;
-    });
+        if (el.dataset.injectedFor && el.dataset.injectedFor !== player.id) {
+          clearInjected(el);
+        }
+
+        if (settings.changeDisplayName) {
+          if (player.displayName) replaceName(el, player.displayName);
+          else replaceName(el, '');
+        } else {
+          replaceName(el, '');
+        }
+
+        el.querySelectorAll('.injected-badge').forEach((badge) => badge.remove());
+        if (settings.showBadge && settings.changeTitle && player.badge) {
+          const wrapper = document.createElement('span');
+          wrapper.innerHTML = player.badge;
+          const badgeNode = wrapper.firstChild;
+          const icon = el.querySelector('icon.line, i.line');
+
+          if (icon) icon.insertAdjacentElement('afterend', badgeNode);
+          else el.prepend(badgeNode);
+        }
+
+        if (settings.showFlair) {
+          setFlair(el, player.flair);
+        } else {
+          setFlair(el, '');
+        }
+
+        if (settings.showTrophy) {
+          setTrophies(el, player);
+        } else {
+          const container = findTrophiesContainer(el);
+          if (container) {
+            container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
+            delete container.dataset.injectedTrophySig;
+          }
+        }
+
+        el.dataset.injectedFor = player.id;
+        el.dataset.injectedSig = signature;
+      });
+    } else {
+      document.querySelectorAll('.user-link').forEach((el) => {
+        if (el.dataset.injectedFor) clearInjected(el);
+      });
+    }
 
     const teamHeader = getTeamHeader();
     const currentTeam = normalizeTeamPath();
