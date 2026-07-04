@@ -801,28 +801,22 @@
     }
 
     const currentProfileUser = getCurrentProfileUser();
-    const isProfilePage = !!currentProfileUser;
-    const playersById = new Map(players.map((player) => [player.id, player]));
-    const elements = document.querySelectorAll('.user-link');
+    const player = players.find((entry) => usersMatchExact(entry.id, currentProfileUser));
+
+    document.querySelectorAll('.user-link').forEach((el) => {
+      if (el.dataset.injectedFor) clearInjected(el);
+    });
+
+    if (!player) {
+      return;
+    }
+
+    const elements = Array.from(document.querySelectorAll('.user-link')).filter((el) =>
+      usersMatchExact(resolveUserForElement(el), currentProfileUser)
+    );
 
     elements.forEach((el) => {
       const currentUser = resolveUserForElement(el);
-
-      if (!currentUser) {
-        if (el.dataset.injectedFor) clearInjected(el);
-        return;
-      }
-
-      const player = playersById.get(currentUser);
-      if (!player) {
-        if (el.dataset.injectedFor) clearInjected(el);
-        return;
-      }
-
-      if (!isProfilePage || !usersMatchExact(currentUser, currentProfileUser)) {
-        if (el.dataset.injectedFor) clearInjected(el);
-        return;
-      }
 
       const signature = [
         player.displayName,
