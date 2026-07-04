@@ -187,8 +187,8 @@
     const hoverBlur = Math.max(baseBlur + 2, Math.round(baseBlur * 1.6));
 
     return {
-      base: `0 0 ${baseBlur}px ${color}`,
-      hover: `0 0 ${hoverBlur}px ${color}, 0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${color}`
+      base: `drop-shadow(0 0 ${baseBlur}px ${color})`,
+      hover: `drop-shadow(0 0 ${hoverBlur}px ${color}) drop-shadow(0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${color})`
     };
   }
 
@@ -233,16 +233,16 @@
       const baseBlur = Math.max(1, Math.round(glowIntensity));
       const hoverBlur = Math.max(baseBlur + 2, Math.round(baseBlur * 1.6));
       return {
-        base: `0 0 ${baseBlur}px ${glowColor}`,
-        hover: `0 0 ${hoverBlur}px ${glowColor}, 0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${glowColor}`,
+        base: `drop-shadow(0 0 ${baseBlur}px ${glowColor})`,
+        hover: `drop-shadow(0 0 ${hoverBlur}px ${glowColor}) drop-shadow(0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${glowColor})`,
         hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
       };
     }
 
     if (isOriginalCreatorAward(label, url)) {
       return {
-        base: '0 0 6px rgba(170, 170, 170, 0.78)',
-        hover: '0 0 11px rgba(190, 190, 190, 0.92), 0 0 5px rgba(210, 210, 210, 0.72)',
+        base: 'drop-shadow(0 0 6px rgba(170, 170, 170, 0.78))',
+        hover: 'drop-shadow(0 0 11px rgba(190, 190, 190, 0.92)) drop-shadow(0 0 5px rgba(210, 210, 210, 0.72))',
         hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
       };
     }
@@ -639,19 +639,16 @@
       link.style.backfaceVisibility = 'hidden';
       link.style.transform = 'translateZ(0)';
       link.style.willChange = 'transform';
-      link.style.boxShadow = awardStyles.base;
-      link.style.borderRadius = '4px';
+      link.style.filter = awardStyles.base;
       link.addEventListener('mouseenter', () => {
         link.style.zIndex = '5';
         link.style.transform = awardStyles.hoverTransform;
-        link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
-        link.style.boxShadow = awardStyles.hover;
+        link.style.filter = awardStyles.hover;
       });
       link.addEventListener('mouseleave', () => {
         link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
-        link.style.filter = 'none';
-        link.style.boxShadow = awardStyles.base;
+        link.style.filter = awardStyles.base;
       });
 
       const span = document.createElement('span');
@@ -762,8 +759,7 @@
       link.style.transform = 'translateZ(0)';
       link.style.lineHeight = '0';
       link.style.zIndex = '1';
-      link.style.boxShadow = awardStyles.base;
-      link.style.borderRadius = '4px';
+      link.style.filter = awardStyles.base;
       link.addEventListener('click', (event) => {
         if (event.button !== 0) return;
         event.preventDefault();
@@ -772,14 +768,12 @@
       link.addEventListener('mouseenter', () => {
         link.style.zIndex = '5';
         link.style.transform = awardStyles.hoverTransform;
-        link.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))';
-        link.style.boxShadow = awardStyles.hover;
+        link.style.filter = awardStyles.hover;
       });
       link.addEventListener('mouseleave', () => {
         link.style.zIndex = '1';
         link.style.transform = 'translateZ(0)';
-        link.style.filter = 'none';
-        link.style.boxShadow = awardStyles.base;
+        link.style.filter = awardStyles.base;
       });
 
       const inner = document.createElement('span');
