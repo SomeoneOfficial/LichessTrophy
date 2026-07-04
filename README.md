@@ -3,7 +3,7 @@ ANY issues please submit a bug report
 
 how to install:
 
-first download and unzip 
+first download and unzip  by clicking on code and download zip
 then go to chrome://extensions/ 
 and then click developer mode on
 then load unpacked and then select the folder you unzipped! and you are done! message @ajisland on lichess for questions!
