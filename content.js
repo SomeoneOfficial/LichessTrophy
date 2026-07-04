@@ -531,6 +531,7 @@
       link.style.verticalAlign = 'middle';
       link.style.cursor = 'pointer';
       link.style.pointerEvents = 'auto';
+      link.style.overflow = 'visible';
       link.style.transformOrigin = 'center center';
       link.style.transition = 'transform 140ms ease, filter 140ms ease';
       link.style.willChange = 'transform';
@@ -556,11 +557,12 @@
       inner.style.alignItems = 'center';
       inner.style.justifyContent = 'center';
       inner.style.verticalAlign = 'middle';
-      inner.style.lineHeight = '0';
+      inner.style.lineHeight = '1';
+      inner.style.overflow = 'visible';
 
       const offsetX = Number.isFinite(badge.offsetX) ? badge.offsetX : 0;
       const offsetY = Number.isFinite(badge.offsetY) ? badge.offsetY : 0;
-      const scale = Number.isFinite(badge.scale) ? badge.scale : 1.18;
+      const scale = Number.isFinite(badge.scale) ? badge.scale : 1.08;
       link.style.marginLeft = `${offsetX}px`;
       link.style.marginTop = `${offsetY}px`;
       inner.style.transformOrigin = 'center center';
@@ -573,8 +575,8 @@
         img.title = title;
         img.className = 'injected-team-badge-image';
         img.style.display = 'block';
-        img.style.maxWidth = '22px';
-        img.style.maxHeight = '22px';
+        img.style.maxWidth = '18px';
+        img.style.maxHeight = '18px';
         img.style.pointerEvents = 'none';
         inner.appendChild(img);
       } else {
