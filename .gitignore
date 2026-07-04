@@ -1,0 +1,19 @@
+# Local secrets and overrides
+.env
+.env.*
+*.local
+
+# Supabase private files
+supabase/.env
+supabase/.env.*
+supabase/config.local.json
+supabase/*secret*
+supabase/*private*
+supabase/*service_role*
+supabase/*credentials*
+supabase/*token*
+
+# OS / editor clutter
+.DS_Store
+Thumbs.db
+.vscode/

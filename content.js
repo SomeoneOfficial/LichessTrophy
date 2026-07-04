@@ -292,13 +292,15 @@
   }
 
   async function loadJsonSource(url, fallbackUrl, label) {
-    return fetch(url, {
+    const options = {
       cache: 'no-store',
       mode: 'cors',
       headers: {
         Accept: 'application/json'
       }
-    })
+    };
+
+    return fetch(url, options)
       .then((response) => {
         if (!response.ok) {
           throw new Error(`${label} request failed with status ${response.status}`);
@@ -335,13 +337,18 @@
       const bucket = normalizeField(config.bucket || config.bucketName);
       const peoplePath = normalizeField(config.peoplePath || config.peopleFile || 'People.json');
       const teamsPath = normalizeField(config.teamsPath || config.teamsFile || 'Teams.json');
+      const anonKey = normalizeField(config.anonKey || config.publicAnonKey || config.key);
 
       if (!baseUrl || !bucket) return null;
       if (baseUrl.includes('YOUR_PROJECT') || bucket.includes('YOUR_BUCKET')) return null;
 
       return {
         baseUrl: baseUrl.replace(/\/+$/, ''),
+        mode: normalizeField(config.mode || 'storage').toLowerCase(),
+        anonKey: anonKey.includes('YOUR_') ? '' : anonKey,
         bucket,
+        peopleTable: normalizeField(config.peopleTable || 'people_export'),
+        teamsTable: normalizeField(config.teamsTable || 'teams_export'),
         peoplePath,
         teamsPath
       };
@@ -356,14 +363,67 @@
     return `${config.baseUrl}/storage/v1/object/public/${config.bucket}/${path}`;
   }
 
+  function buildSupabaseTableUrl(config, tableName) {
+    if (!config) return '';
+    const table = normalizeField(tableName);
+    if (!table) return '';
+    return `${config.baseUrl}/rest/v1/${table}?select=*`;
+  }
+
+  function buildSupabaseHeaders(config) {
+    if (!config || !config.anonKey) return null;
+
+    return {
+      apikey: config.anonKey,
+      Authorization: `Bearer ${config.anonKey}`,
+      Accept: 'application/json'
+    };
+  }
+
   async function loadData() {
     const supabaseConfig = await loadSupabaseConfig();
-    const peopleUrl = buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.peoplePath);
-    const teamsUrl = buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.teamsPath);
+    const useTables = supabaseConfig && supabaseConfig.mode === 'tables' && supabaseConfig.anonKey;
+    const headers = buildSupabaseHeaders(supabaseConfig);
+    const peopleUrl = useTables
+      ? buildSupabaseTableUrl(supabaseConfig, supabaseConfig.peopleTable)
+      : buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.peoplePath);
+    const teamsUrl = useTables
+      ? buildSupabaseTableUrl(supabaseConfig, supabaseConfig.teamsTable)
+      : buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.teamsPath);
 
     const [peopleText, teamsText] = await Promise.all([
-      loadJsonSource(peopleUrl || FALLBACK_PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People'),
-      loadJsonSource(teamsUrl || FALLBACK_TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams')
+      fetch(peopleUrl || FALLBACK_PEOPLE_JSON_URL, {
+        cache: 'no-store',
+        mode: 'cors',
+        headers: headers || { Accept: 'application/json' }
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`People request failed with status ${response.status}`);
+          }
+
+          return response.text();
+        })
+        .catch((error) => {
+          console.error('People JSON load failed, trying local fallback:', error);
+          return loadJsonSource(FALLBACK_PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People');
+        }),
+      fetch(teamsUrl || FALLBACK_TEAMS_JSON_URL, {
+        cache: 'no-store',
+        mode: 'cors',
+        headers: headers || { Accept: 'application/json' }
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`Teams request failed with status ${response.status}`);
+          }
+
+          return response.text();
+        })
+        .catch((error) => {
+          console.error('Teams JSON load failed, trying local fallback:', error);
+          return loadJsonSource(FALLBACK_TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams');
+        })
     ]);
 
     players = parsePlayers(peopleText);

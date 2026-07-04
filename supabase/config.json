@@ -1,6 +1,10 @@
 {
+  "mode": "storage",
   "baseUrl": "https://YOUR_PROJECT_REF.supabase.co",
+  "anonKey": "YOUR_ANON_KEY",
   "bucket": "lichess-trophy-data",
+  "peopleTable": "people_export",
+  "teamsTable": "teams_export",
   "peoplePath": "People.json",
   "teamsPath": "Teams.json"
 }
