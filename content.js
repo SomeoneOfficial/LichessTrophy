@@ -376,18 +376,7 @@
 
     span.appendChild(img);
     link.appendChild(span);
-
-    const firstTrophy = container.querySelector('a.trophy, a.injected-trophy');
-    if (firstTrophy) {
-      container.insertBefore(link, firstTrophy);
-    } else {
-    const firstTrophy = container.querySelector('a.trophy, a.injected-trophy');
-    if (firstTrophy) {
-      container.insertBefore(link, firstTrophy);
-    } else {
-      container.prepend(link);
-    }
-    }
+    container.prepend(link);
 
     container.dataset.injectedTrophySig = signature;
   }
@@ -425,6 +414,21 @@
     panelEls.trophy.checked = !!settings.showTrophy;
     panelEls.body.classList.toggle('is-disabled', !settings.enabled);
     panelRoot.style.display = panelVisible ? 'block' : 'none';
+  }
+
+  function hidePanel() {
+    panelVisible = false;
+    syncPanel();
+  }
+
+  function showPanel() {
+    panelVisible = true;
+    syncPanel();
+  }
+
+  function togglePanel() {
+    if (panelVisible) hidePanel();
+    else showPanel();
   }
 
   function createPanel() {
@@ -506,7 +510,7 @@
       </style>
       <div class="panel">
         <div class="header">
-          <div>Lichess Injector</div>
+          <div>LichessTrophy</div>
           <button type="button" data-action="toggle-panel" aria-label="Toggle panel">-</button>
         </div>
         <div class="content">
@@ -556,23 +560,11 @@
     bind('showFlair', flair);
     bind('showTrophy', trophy);
 
-    let collapsed = false;
     toggleButton.addEventListener('click', () => {
-      collapsed = !collapsed;
-      body.style.display = collapsed ? 'none' : 'grid';
-      toggleButton.textContent = collapsed ? '+' : '-';
-      toggleButton.setAttribute('aria-label', collapsed ? 'Open panel' : 'Toggle panel');
+      togglePanel();
     });
 
     document.documentElement.appendChild(panelRoot);
-    syncPanel();
-  }
-
-  function togglePanel() {
-    panelVisible = !panelVisible;
-    if (!panelRoot) {
-      createPanel();
-    }
     syncPanel();
   }
 
@@ -624,8 +616,6 @@
 
       if (settings.changeDisplayName) {
         replaceName(el, player.displayName);
-      } else if (el.dataset.originalName) {
-        replaceName(el, '');
       } else {
         replaceName(el, '');
       }
@@ -681,8 +671,29 @@
     });
   }
 
+  function closeOnOutsideInteraction(event) {
+    if (!panelVisible || !panelRoot) return;
+
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : [];
+    if (path.includes(panelRoot)) return;
+
+    hidePanel();
+  }
+
+  function registerAutoCloseHandlers() {
+    window.addEventListener('blur', hidePanel);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) hidePanel();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') hidePanel();
+    });
+    document.addEventListener('pointerdown', closeOnOutsideInteraction, true);
+  }
+
   async function init() {
     createPanel();
+    registerAutoCloseHandlers();
     await loadSettings();
     syncPanel();
     await loadData();
