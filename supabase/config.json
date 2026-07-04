@@ -3,8 +3,8 @@
   "baseUrl": "https://dposvcacvnizzijcnqqr.supabase.co",
   "anonKey": "sb_publishable_XcgeKWqh8sAmLSI-wGXeXQ_gFiTmAUP",
   "bucket": "lichess-trophy-data",
-  "peopleTable": "people_export",
-  "teamsTable": "teams_export",
+  "peopleTable": "people",
+  "teamsTable": "teams",
   "peoplePath": "People.json",
   "teamsPath": "Teams.json"
 }

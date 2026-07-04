@@ -19,8 +19,8 @@ When `config.json` is filled in, the extension will load:
 
 If you switch `config.json` to `"mode": "tables"`, the extension will read:
 
-- `people_export` from `https://<project-ref>.supabase.co/rest/v1/people_export?select=*`
-- `teams_export` from `https://<project-ref>.supabase.co/rest/v1/teams_export?select=*`
+- `people` from `https://<project-ref>.supabase.co/rest/v1/people?select=*`
+- `teams` from `https://<project-ref>.supabase.co/rest/v1/teams?select=*`
 
 ## Notes
 
