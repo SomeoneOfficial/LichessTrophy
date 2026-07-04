@@ -1,14 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
-const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const tableName = process.env.SUPABASE_TABLE_NAME || 'files';
 const rootDir = process.cwd();
-
-if (!supabaseUrl) {
-  throw new Error('SUPABASE_URL is required');
-}
 
 if (!serviceRoleKey) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
@@ -19,8 +13,20 @@ async function readJson(filePath) {
   return JSON.parse(text);
 }
 
-async function upsertRow(fileName, data) {
-  const response = await fetch(`${supabaseUrl.replace(/\/+$/, '')}/rest/v1/${tableName}?on_conflict=file_name`, {
+async function readSupabaseConfig() {
+  const config = await readJson('supabase/config.json');
+  const supabaseUrl = String(config.baseUrl || '').replace(/\/+$/, '');
+  const tableName = String(config.tableName || 'files').trim() || 'files';
+
+  if (!supabaseUrl) {
+    throw new Error('supabase/config.json is missing baseUrl');
+  }
+
+  return { supabaseUrl, tableName };
+}
+
+async function upsertRow(supabaseUrl, tableName, fileName, data) {
+  const response = await fetch(`${supabaseUrl}/rest/v1/${tableName}?on_conflict=file_name`, {
     method: 'POST',
     headers: {
       apikey: serviceRoleKey,
@@ -42,11 +48,12 @@ async function upsertRow(fileName, data) {
 }
 
 async function main() {
+  const { supabaseUrl, tableName } = await readSupabaseConfig();
   const people = await readJson('supabase/People.json');
   const teams = await readJson('supabase/Teams.json');
 
-  await upsertRow('People.json', people);
-  await upsertRow('Teams.json', teams);
+  await upsertRow(supabaseUrl, tableName, 'People.json', people);
+  await upsertRow(supabaseUrl, tableName, 'Teams.json', teams);
 
   console.log('Supabase sync complete.');
 }
