@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/People.json';
+  const JSON_URL = 'https://api.github.com/repos/SomeoneOfficial/LichessTrophy/contents/People.json?ref=main';
   const FALLBACK_JSON_URL = chrome.runtime.getURL('People.json');
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
@@ -208,11 +208,48 @@
       .filter(Boolean);
   }
 
+  function decodeGitHubContent(text) {
+    let parsed;
+
+    try {
+      parsed = JSON.parse(text);
+    } catch (error) {
+      return text;
+    }
+
+    if (parsed && typeof parsed === 'object' && typeof parsed.content === 'string') {
+      const content = parsed.content.replace(/\n/g, '');
+      if (parsed.encoding === 'base64') {
+        try {
+          return decodeURIComponent(
+            Array.prototype.map.call(atob(content), (char) =>
+              `%${char.charCodeAt(0).toString(16).padStart(2, '0')}`
+            ).join('')
+          );
+        } catch (error) {
+          try {
+            return atob(content);
+          } catch (innerError) {
+            return text;
+          }
+        }
+      }
+    }
+
+    return text;
+  }
+
   function loadData() {
-    return fetch(JSON_URL, { cache: 'no-store', mode: 'cors' })
+    return fetch(JSON_URL, {
+      cache: 'no-store',
+      mode: 'cors',
+      headers: {
+        Accept: 'application/vnd.github.raw+json'
+      }
+    })
       .then((response) => response.text())
       .then((text) => {
-        players = parsePlayers(text);
+        players = parsePlayers(decodeGitHubContent(text));
         console.log('Loaded players:', players);
       })
       .catch((error) => {

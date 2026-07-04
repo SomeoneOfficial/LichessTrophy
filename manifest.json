@@ -20,6 +20,7 @@
     "service_worker": "background.js"
   },
   "host_permissions": [
+    "https://api.github.com/*",
     "https://raw.githubusercontent.com/*",
     "https://githubusercontent.com/*"
   ],
