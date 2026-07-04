@@ -53,6 +53,10 @@
     }
   }
 
+  function getCurrentProfileUser() {
+    return extractUserFromHref(window.location.pathname || '');
+  }
+
   function resolveUserForElement(el) {
     const dataHrefUser = extractUserFromHref(el.getAttribute('data-href') || '');
     if (dataHrefUser) return dataHrefUser;
@@ -790,6 +794,8 @@
       return;
     }
 
+    const currentProfileUser = getCurrentProfileUser();
+    const isProfilePage = !!currentProfileUser;
     const playersById = new Map(players.map((player) => [player.id, player]));
     const elements = document.querySelectorAll('.user-link');
 
@@ -803,6 +809,11 @@
 
       const player = playersById.get(currentUser);
       if (!player) {
+        if (el.dataset.injectedFor) clearInjected(el);
+        return;
+      }
+
+      if (!isProfilePage || currentUser !== currentProfileUser) {
         if (el.dataset.injectedFor) clearInjected(el);
         return;
       }
