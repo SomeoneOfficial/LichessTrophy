@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/People.json';
+  const JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/People.json';
   const FALLBACK_JSON_URL = chrome.runtime.getURL('People.json');
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
