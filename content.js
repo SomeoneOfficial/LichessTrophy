@@ -2,8 +2,6 @@
   'use strict';
 
   const SUPABASE_CONFIG_URL = chrome.runtime.getURL('supabase/config.json');
-  const FALLBACK_PEOPLE_JSON_URL = chrome.runtime.getURL('supabase/People.json');
-  const FALLBACK_TEAMS_JSON_URL = chrome.runtime.getURL('supabase/Teams.json');
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
   const DEFAULT_SETTINGS = {
@@ -291,40 +289,6 @@
       .filter(Boolean);
   }
 
-  async function loadJsonSource(url, fallbackUrl, label) {
-    const options = {
-      cache: 'no-store',
-      mode: 'cors',
-      headers: {
-        Accept: 'application/json'
-      }
-    };
-
-    return fetch(url, options)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`${label} request failed with status ${response.status}`);
-        }
-
-        return response.text();
-      })
-      .catch((error) => {
-        console.error(`${label} JSON load failed, trying local fallback:`, error);
-        return fetch(fallbackUrl, { cache: 'no-store' })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`${label} fallback failed with status ${response.status}`);
-            }
-
-            return response.text();
-          })
-          .catch((fallbackError) => {
-            console.error(`Fallback ${label} JSON load failed:`, fallbackError);
-            return '[]';
-          });
-      });
-  }
-
   async function loadSupabaseConfig() {
     try {
       const response = await fetch(SUPABASE_CONFIG_URL, { cache: 'no-store' });
@@ -412,19 +376,13 @@
         console.log('Loaded teams:', teams);
         return;
       } catch (error) {
-        console.error('Supabase load failed, trying bundled fallback JSON:', error);
+        console.error('Supabase load failed:', error);
       }
     }
 
-    const [peopleText, teamsText] = await Promise.all([
-      loadJsonSource(FALLBACK_PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People'),
-      loadJsonSource(FALLBACK_TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams')
-    ]);
-
-    players = parsePlayers(peopleText);
-    teams = parseTeams(teamsText);
-    console.log('Loaded players:', players);
-    console.log('Loaded teams:', teams);
+    players = [];
+    teams = [];
+    console.warn('Supabase data is unavailable; no trophies or team badges loaded.');
   }
 
   function getPrimaryTextNode(el) {
