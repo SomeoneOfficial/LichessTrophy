@@ -229,20 +229,20 @@
     const glowColor = normalizeGlowColor(award?.glowColor ?? award?.glowRgb ?? award?.rgb);
     const glowIntensity = parseNumber(award?.glowIntensity ?? award?.intensity, null);
 
-    if (isOriginalCreatorAward(label, url)) {
-      return {
-        base: '0 0 6px rgba(170, 170, 170, 0.78)',
-        hover: '0 0 11px rgba(190, 190, 190, 0.92), 0 0 5px rgba(210, 210, 210, 0.72)',
-        hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
-      };
-    }
-
     if (glowEnabled && glowIntensity !== null && glowIntensity > 0 && glowColor) {
       const baseBlur = Math.max(1, Math.round(glowIntensity));
       const hoverBlur = Math.max(baseBlur + 2, Math.round(baseBlur * 1.6));
       return {
         base: `0 0 ${baseBlur}px ${glowColor}`,
         hover: `0 0 ${hoverBlur}px ${glowColor}, 0 0 ${Math.max(1, Math.round(hoverBlur / 2))}px ${glowColor}`,
+        hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
+      };
+    }
+
+    if (isOriginalCreatorAward(label, url)) {
+      return {
+        base: '0 0 6px rgba(170, 170, 170, 0.78)',
+        hover: '0 0 11px rgba(190, 190, 190, 0.92), 0 0 5px rgba(210, 210, 210, 0.72)',
         hoverTransform: 'translate3d(0, -2px, 0) scale(1.06)'
       };
     }
