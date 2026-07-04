@@ -1,0 +1,18 @@
+[
+  {
+    "team": "the-chess-fan-club",
+    "name": "The Chess Fan Club",
+    "clickHref": "/team/the-chess-fan-club/members",
+    "badges": [
+      {
+        "url": "https://lichess1.org/assets/______4/flair/img/activity.chess.webp",
+        "clickUrl": "/team/the-chess-fan-club/members",
+        "title": "The Chess Fan Club",
+        "className": "trophy perf top1",
+        "offsetX": 3,
+        "offsetY": -1,
+        "scale": 1
+      }
+    ]
+  }
+]

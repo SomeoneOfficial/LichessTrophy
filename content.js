@@ -1,8 +1,9 @@
 (function () {
   'use strict';
 
-  const FALLBACK_PEOPLE_JSON_URL = chrome.runtime.getURL('People.json');
-  const FALLBACK_TEAMS_JSON_URL = chrome.runtime.getURL('Teams.json');
+  const SUPABASE_CONFIG_URL = chrome.runtime.getURL('supabase/config.json');
+  const FALLBACK_PEOPLE_JSON_URL = chrome.runtime.getURL('supabase/People.json');
+  const FALLBACK_TEAMS_JSON_URL = chrome.runtime.getURL('supabase/Teams.json');
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
   const DEFAULT_SETTINGS = {
@@ -290,31 +291,7 @@
       .filter(Boolean);
   }
 
-  async function fetchRepoSha() {
-    const branchRes = await fetch(
-      `https://api.github.com/repos/SomeoneOfficial/LichessTrophy/commits/main?t=${Date.now()}`,
-      {
-        cache: 'no-store',
-        mode: 'cors',
-        headers: {
-          Accept: 'application/vnd.github+json'
-        }
-      }
-    );
-
-    if (!branchRes.ok) {
-      throw new Error(`Branch lookup failed with status ${branchRes.status}`);
-    }
-
-    const branchData = await branchRes.json();
-    return branchData && branchData.sha ? branchData.sha : '';
-  }
-
-  async function loadJsonSource(fileName, fallbackUrl, label, sha) {
-    const url = sha
-      ? `https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/${sha}/${fileName}?t=${Date.now()}`
-      : `https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/${fileName}?t=${Date.now()}`;
-
+  async function loadJsonSource(url, fallbackUrl, label) {
     return fetch(url, {
       cache: 'no-store',
       mode: 'cors',
@@ -346,18 +323,47 @@
       });
   }
 
-  async function loadData() {
-    let sha = '';
-
+  async function loadSupabaseConfig() {
     try {
-      sha = await fetchRepoSha();
+      const response = await fetch(SUPABASE_CONFIG_URL, { cache: 'no-store' });
+      if (!response.ok) return null;
+
+      const config = await response.json();
+      if (!config || typeof config !== 'object') return null;
+
+      const baseUrl = normalizeField(config.baseUrl || config.url || config.supabaseUrl);
+      const bucket = normalizeField(config.bucket || config.bucketName);
+      const peoplePath = normalizeField(config.peoplePath || config.peopleFile || 'People.json');
+      const teamsPath = normalizeField(config.teamsPath || config.teamsFile || 'Teams.json');
+
+      if (!baseUrl || !bucket) return null;
+      if (baseUrl.includes('YOUR_PROJECT') || bucket.includes('YOUR_BUCKET')) return null;
+
+      return {
+        baseUrl: baseUrl.replace(/\/+$/, ''),
+        bucket,
+        peoplePath,
+        teamsPath
+      };
     } catch (error) {
-      console.error('GitHub SHA lookup failed, falling back to main:', error);
+      return null;
     }
+  }
+
+  function buildSupabasePublicUrl(config, filePath) {
+    if (!config) return '';
+    const path = String(filePath || '').replace(/^\/+/, '');
+    return `${config.baseUrl}/storage/v1/object/public/${config.bucket}/${path}`;
+  }
+
+  async function loadData() {
+    const supabaseConfig = await loadSupabaseConfig();
+    const peopleUrl = buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.peoplePath);
+    const teamsUrl = buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.teamsPath);
 
     const [peopleText, teamsText] = await Promise.all([
-      loadJsonSource('People.json', FALLBACK_PEOPLE_JSON_URL, 'People', sha),
-      loadJsonSource('Teams.json', FALLBACK_TEAMS_JSON_URL, 'Teams', sha)
+      loadJsonSource(peopleUrl || FALLBACK_PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People'),
+      loadJsonSource(teamsUrl || FALLBACK_TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams')
     ]);
 
     players = parsePlayers(peopleText);

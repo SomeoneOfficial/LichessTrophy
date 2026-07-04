@@ -1,0 +1,6 @@
+{
+  "baseUrl": "https://YOUR_PROJECT_REF.supabase.co",
+  "bucket": "lichess-trophy-data",
+  "peoplePath": "People.json",
+  "teamsPath": "Teams.json"
+}

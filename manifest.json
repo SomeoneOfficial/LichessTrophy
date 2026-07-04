@@ -22,7 +22,8 @@
   "host_permissions": [
     "https://api.github.com/*",
     "https://raw.githubusercontent.com/*",
-    "https://githubusercontent.com/*"
+    "https://githubusercontent.com/*",
+    "https://*.supabase.co/*"
   ],
   "content_scripts": [
     {
