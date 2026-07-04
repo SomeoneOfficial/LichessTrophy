@@ -1,49 +1,53 @@
-insert into public.people (username, title, display_name, flair, click_href, trophies)
+insert into public.files (file_name, data)
 values (
-  'ajisland',
-  'LG',
-  '',
-  '',
-  '/player/top/blitz',
+  'people.json',
   '[
-  {
-    "url": "https://github.com/SomeoneOfficial/LichessTrophy/blob/main/Badges/OriginalCreator.png?raw=true",
-    "clickUrl": "/player/top/blitz",
-    "title": "Original Creator Of LichessTrophy",
-    "className": "trophy perf top1",
-    "content": "Original Creator Of LichessTrophy",
-    "offsetX": 10,
-    "offsetY": 5,
-    "scale": 4
-  }
-]'::jsonb
+    {
+      "username": "Ajisland",
+      "title": "LG",
+      "displayName": "",
+      "flair": "",
+      "clickHref": "/player/top/blitz",
+      "trophies": [
+        {
+          "url": "https://github.com/SomeoneOfficial/LichessTrophy/blob/main/Badges/OriginalCreator.png?raw=true",
+          "clickUrl": "/player/top/blitz",
+          "title": "Original Creator Of LichessTrophy",
+          "className": "trophy perf top1",
+          "content": "Original Creator Of LichessTrophy",
+          "offsetX": 10,
+          "offsetY": 5,
+          "scale": 4
+        }
+      ]
+    }
+  ]'::jsonb
 )
-on conflict (username) do update set
-  title = excluded.title,
-  display_name = excluded.display_name,
-  flair = excluded.flair,
-  click_href = excluded.click_href,
-  trophies = excluded.trophies;
+on conflict (file_name) do update set
+  data = excluded.data;
 
-insert into public.teams (slug, name, click_href, badges)
+insert into public.files (file_name, data)
 values (
-  'the-chess-fan-club',
-  'The Chess Fan Club',
-  '/team/the-chess-fan-club/members',
+  'teams.json',
   '[
-  {
-    "url": "https://lichess1.org/assets/______4/flair/img/activity.chess.webp",
-    "clickUrl": "/team/the-chess-fan-club/members",
-    "title": "The Chess Fan Club",
-    "className": "trophy perf top1",
-    "content": "",
-    "offsetX": 3,
-    "offsetY": -1,
-    "scale": 1
-  }
-]'::jsonb
+    {
+      "team": "the-chess-fan-club",
+      "name": "The Chess Fan Club",
+      "clickHref": "/team/the-chess-fan-club/members",
+      "badges": [
+        {
+          "url": "https://lichess1.org/assets/______4/flair/img/activity.chess.webp",
+          "clickUrl": "/team/the-chess-fan-club/members",
+          "title": "The Chess Fan Club",
+          "className": "trophy perf top1",
+          "content": "",
+          "offsetX": 3,
+          "offsetY": -1,
+          "scale": 1
+        }
+      ]
+    }
+  ]'::jsonb
 )
-on conflict (slug) do update set
-  name = excluded.name,
-  click_href = excluded.click_href,
-  badges = excluded.badges;
+on conflict (file_name) do update set
+  data = excluded.data;

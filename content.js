@@ -334,33 +334,21 @@
       if (!config || typeof config !== 'object') return null;
 
       const baseUrl = normalizeField(config.baseUrl || config.url || config.supabaseUrl);
-      const bucket = normalizeField(config.bucket || config.bucketName);
-      const peoplePath = normalizeField(config.peoplePath || config.peopleFile || 'People.json');
-      const teamsPath = normalizeField(config.teamsPath || config.teamsFile || 'Teams.json');
       const anonKey = normalizeField(config.anonKey || config.publicAnonKey || config.key);
+      const tableName = normalizeField(config.tableName || config.table || 'files');
 
-      if (!baseUrl || !bucket) return null;
-      if (baseUrl.includes('YOUR_PROJECT') || bucket.includes('YOUR_BUCKET')) return null;
+      if (!baseUrl || !tableName) return null;
+      if (baseUrl.includes('YOUR_PROJECT') || tableName.includes('YOUR_')) return null;
 
       return {
         baseUrl: baseUrl.replace(/\/+$/, ''),
         mode: normalizeField(config.mode || 'storage').toLowerCase(),
         anonKey: anonKey.includes('YOUR_') ? '' : anonKey,
-        bucket,
-        peopleTable: normalizeField(config.peopleTable || 'people_export'),
-        teamsTable: normalizeField(config.teamsTable || 'teams_export'),
-        peoplePath,
-        teamsPath
+        tableName
       };
     } catch (error) {
       return null;
     }
-  }
-
-  function buildSupabasePublicUrl(config, filePath) {
-    if (!config) return '';
-    const path = String(filePath || '').replace(/^\/+/, '');
-    return `${config.baseUrl}/storage/v1/object/public/${config.bucket}/${path}`;
   }
 
   function buildSupabaseTableUrl(config, tableName) {
@@ -380,50 +368,57 @@
     };
   }
 
+  function normalizeJsonPayload(row) {
+    const value = row && (row.data ?? row.payload ?? row.json ?? row.content);
+    if (typeof value === 'string') return value;
+    if (value == null) return '[]';
+    return JSON.stringify(value);
+  }
+
   async function loadData() {
     const supabaseConfig = await loadSupabaseConfig();
-    const useTables = supabaseConfig && supabaseConfig.mode === 'tables' && supabaseConfig.anonKey;
+    const useSupabase = supabaseConfig && supabaseConfig.mode === 'tables' && supabaseConfig.anonKey;
     const headers = buildSupabaseHeaders(supabaseConfig);
-    const peopleUrl = useTables
-      ? buildSupabaseTableUrl(supabaseConfig, supabaseConfig.peopleTable)
-      : buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.peoplePath);
-    const teamsUrl = useTables
-      ? buildSupabaseTableUrl(supabaseConfig, supabaseConfig.teamsTable)
-      : buildSupabasePublicUrl(supabaseConfig, supabaseConfig && supabaseConfig.teamsPath);
+    if (useSupabase) {
+      const tableUrl = buildSupabaseTableUrl(supabaseConfig, supabaseConfig.tableName);
+
+      try {
+        const response = await fetch(tableUrl, {
+          cache: 'no-store',
+          mode: 'cors',
+          headers: headers || { Accept: 'application/json' }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Supabase request failed with status ${response.status}`);
+        }
+
+        const rows = await response.json();
+        const rowMap = new Map(
+          Array.isArray(rows)
+            ? rows.map((row) => [normalizeField(row.file_name || row.filename || row.name || row.id).toLowerCase(), row])
+            : []
+        );
+
+        const peopleRow = rowMap.get('people.json') || rowMap.get('people');
+        const teamsRow = rowMap.get('teams.json') || rowMap.get('teams');
+
+        const peopleText = peopleRow ? normalizeJsonPayload(peopleRow) : '[]';
+        const teamsText = teamsRow ? normalizeJsonPayload(teamsRow) : '[]';
+
+        players = parsePlayers(peopleText);
+        teams = parseTeams(teamsText);
+        console.log('Loaded players:', players);
+        console.log('Loaded teams:', teams);
+        return;
+      } catch (error) {
+        console.error('Supabase load failed, trying bundled fallback JSON:', error);
+      }
+    }
 
     const [peopleText, teamsText] = await Promise.all([
-      fetch(peopleUrl || FALLBACK_PEOPLE_JSON_URL, {
-        cache: 'no-store',
-        mode: 'cors',
-        headers: headers || { Accept: 'application/json' }
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`People request failed with status ${response.status}`);
-          }
-
-          return response.text();
-        })
-        .catch((error) => {
-          console.error('People JSON load failed, trying local fallback:', error);
-          return loadJsonSource(FALLBACK_PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People');
-        }),
-      fetch(teamsUrl || FALLBACK_TEAMS_JSON_URL, {
-        cache: 'no-store',
-        mode: 'cors',
-        headers: headers || { Accept: 'application/json' }
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`Teams request failed with status ${response.status}`);
-          }
-
-          return response.text();
-        })
-        .catch((error) => {
-          console.error('Teams JSON load failed, trying local fallback:', error);
-          return loadJsonSource(FALLBACK_TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams');
-        })
+      loadJsonSource(FALLBACK_PEOPLE_JSON_URL, FALLBACK_PEOPLE_JSON_URL, 'People'),
+      loadJsonSource(FALLBACK_TEAMS_JSON_URL, FALLBACK_TEAMS_JSON_URL, 'Teams')
     ]);
 
     players = parsePlayers(peopleText);
