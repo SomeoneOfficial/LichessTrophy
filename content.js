@@ -159,6 +159,13 @@
     return '';
   }
 
+  function splitMultiValue(value) {
+    return String(value || '')
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean);
+  }
+
   function parseCsv(text) {
     const rows = [];
     let row = [];
@@ -252,6 +259,11 @@
           trophyTitle,
           trophyClass,
           trophyContent,
+          trophyUrls: splitMultiValue(trophiesUrl),
+          trophyHrefs: splitMultiValue(trophyHref),
+          trophyTitles: splitMultiValue(trophyTitle),
+          trophyClasses: splitMultiValue(trophyClass),
+          trophyContents: splitMultiValue(trophyContent),
           badge: createBadge(cleanTitle)
         };
       })
@@ -345,38 +357,67 @@
     const container = ensureTrophiesContainer(el);
     if (!container) return;
 
-    const trophiesUrl = player.trophiesUrl || '';
-    const trophyHref = player.trophyHref || '/player/top/blitz';
-    const trophyTitle = player.trophyTitle || 'Top Blitz Player';
-    const trophyClass = player.trophyClass || 'trophy perf top1';
+    const trophyUrls = player.trophyUrls && player.trophyUrls.length ? player.trophyUrls : (player.trophiesUrl ? [player.trophiesUrl] : []);
+    const trophyHrefs = player.trophyHrefs && player.trophyHrefs.length ? player.trophyHrefs : (player.trophyHref ? [player.trophyHref] : []);
+    const trophyTitles = player.trophyTitles && player.trophyTitles.length ? player.trophyTitles : (player.trophyTitle ? [player.trophyTitle] : []);
+    const trophyClasses = player.trophyClasses && player.trophyClasses.length ? player.trophyClasses : (player.trophyClass ? [player.trophyClass] : []);
+    const trophyContents = player.trophyContents && player.trophyContents.length ? player.trophyContents : (player.trophyContent ? [player.trophyContent] : []);
 
-    const signature = [trophiesUrl, trophyHref, trophyTitle, trophyClass].join('\u0001');
+    const signature = [
+      trophyUrls.join('|'),
+      trophyHrefs.join('|'),
+      trophyTitles.join('|'),
+      trophyClasses.join('|'),
+      trophyContents.join('|')
+    ].join('\u0001');
     if (container.dataset.injectedTrophySig === signature) {
       return;
     }
 
     container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
-    if (!trophiesUrl) {
+    if (!trophyUrls.length) {
       delete container.dataset.injectedTrophySig;
       return;
     }
 
-    const link = document.createElement('a');
-    link.href = trophyHref;
-    link.className = 'injected-trophy';
+    const count = Math.max(
+      trophyUrls.length,
+      trophyHrefs.length,
+      trophyTitles.length,
+      trophyClasses.length,
+      trophyContents.length
+    );
 
-    const span = document.createElement('span');
-    span.className = trophyClass;
-    span.title = trophyTitle;
-    span.setAttribute('aria-label', trophyTitle);
+    for (let index = 0; index < count; index += 1) {
+      const trophiesUrl = trophyUrls[index] || trophyUrls[0] || '';
+      if (!trophiesUrl) continue;
 
-    const img = document.createElement('img');
-    img.src = trophiesUrl;
-    img.alt = trophyTitle;
+      const trophyHref = trophyHrefs[index] || trophyHrefs[0] || '/player/top/blitz';
+      const trophyTitle = trophyTitles[index] || trophyTitles[0] || 'Top Blitz Player';
+      const trophyClass = trophyClasses[index] || trophyClasses[0] || 'trophy perf top1';
+      const trophyContent = trophyContents[index] || trophyContents[0] || '';
 
-    span.appendChild(img);
-    link.appendChild(span);
-    container.prepend(link);
+      const link = document.createElement('a');
+      link.href = trophyHref;
+      link.className = 'injected-trophy';
+
+      const span = document.createElement('span');
+      span.className = trophyClass;
+      span.title = trophyTitle;
+      span.setAttribute('aria-label', trophyTitle);
+
+      if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophiesUrl) || /^data:image\//i.test(trophiesUrl)) {
+        const img = document.createElement('img');
+        img.src = trophiesUrl;
+        img.alt = trophyTitle;
+        span.appendChild(img);
+      } else {
+        span.textContent = trophyContent || '';
+      }
+
+      link.appendChild(span);
+      container.prepend(link);
+    }
 
     container.dataset.injectedTrophySig = signature;
   }
@@ -603,6 +644,7 @@
         player.trophyHref,
         player.trophyTitle,
         player.trophyClass,
+        player.trophyContent,
         settingsSignature()
       ].join('\u0001');
 
@@ -615,7 +657,11 @@
       }
 
       if (settings.changeDisplayName) {
-        replaceName(el, player.displayName);
+        if (player.displayName) {
+          replaceName(el, player.displayName);
+        } else if (el.dataset.originalName) {
+          replaceName(el, '');
+        }
       } else {
         replaceName(el, '');
       }
