@@ -316,16 +316,27 @@
     return null;
   }
 
+  function ensureTrophiesContainer(el) {
+    let container = findTrophiesContainer(el);
+    if (container) return container;
+
+    const side = document.querySelector('.side');
+    if (!side) return null;
+
+    container = document.createElement('div');
+    container.className = 'trophies';
+    side.prepend(container);
+    return container;
+  }
+
   function setTrophies(el, player) {
-    const container = findTrophiesContainer(el);
+    const container = ensureTrophiesContainer(el);
     if (!container) return;
 
     const trophiesUrl = player.trophiesUrl || '';
-    const trophyHref = player.trophyHref || trophiesUrl;
-    const trophyTitle = player.trophyTitle || 'Custom Trophy';
-    const trophyClass = ['trophy', 'award', 'icon3d', player.trophyClass || 'injected-trophy']
-      .join(' ')
-      .trim();
+    const trophyHref = player.trophyHref || '/player/top/blitz';
+    const trophyTitle = player.trophyTitle || 'Top Blitz Player';
+    const trophyClass = player.trophyClass || 'trophy perf top1';
     const trophyContent = player.trophyContent || '';
 
     const signature = [trophiesUrl, trophyHref, trophyTitle, trophyClass, trophyContent].join('\u0001');
@@ -333,54 +344,27 @@
       return;
     }
 
-    container.querySelectorAll('img.injected-trophy').forEach((img) => img.remove());
     container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
-    if (!trophiesUrl && !trophyHref && !player.trophyContent) {
+    if (!trophiesUrl) {
       delete container.dataset.injectedTrophySig;
       return;
     }
 
-    const urls = trophiesUrl
-      .split('|')
-      .map((value) => value.trim())
-      .filter(Boolean);
+    const link = document.createElement('a');
+    link.href = trophyHref;
+    link.className = 'injected-trophy';
 
-    const hrefs = trophyHref
-      .split('|')
-      .map((value) => value.trim())
-      .filter(Boolean);
+    const span = document.createElement('span');
+    span.className = trophyClass;
+    span.title = trophyTitle;
 
-    const contents = trophyContent
-      .split('|')
-      .map((value) => value.trim())
-      .filter(Boolean);
+    const img = document.createElement('img');
+    img.src = trophiesUrl;
+    img.alt = trophyTitle;
 
-    const count = Math.max(urls.length, hrefs.length, contents.length, 1);
-
-    for (let index = 0; index < count; index += 1) {
-      const url = urls[index] || urls[0] || '';
-      const href = hrefs[index] || hrefs[0] || url || '#';
-      const content = contents[index] || contents[0] || '';
-
-      const link = document.createElement('a');
-      link.className = trophyClass;
-      link.href = href;
-      link.title = trophyTitle;
-      link.setAttribute('aria-label', 'Custom Trophy');
-      link.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;margin-left:4px;vertical-align:middle;';
-
-      if (url && (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url) || /^data:image\//i.test(url))) {
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'Custom Trophy';
-        img.style.cssText = 'display:block;max-height:18px;max-width:18px;';
-        link.appendChild(img);
-      } else {
-        link.textContent = content;
-      }
-
-      container.appendChild(link);
-    }
+    span.appendChild(img);
+    link.appendChild(span);
+    container.appendChild(link);
 
     container.dataset.injectedTrophySig = signature;
   }
@@ -398,7 +382,6 @@
 
     const container = findTrophiesContainer(el);
     if (container) {
-      container.querySelectorAll('img.injected-trophy').forEach((img) => img.remove());
       container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
       delete container.dataset.injectedTrophySig;
     }
