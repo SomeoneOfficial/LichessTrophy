@@ -43,7 +43,7 @@
   }
 
   function extractUserFromHref(href) {
-    const match = (href || '').match(/\/@\/([^/?#]+)/i);
+    const match = (href || '').match(/^\/@\/([^/?#]+)$/i);
     if (!match) return '';
 
     try {
@@ -55,6 +55,10 @@
 
   function getCurrentProfileUser() {
     return extractUserFromHref(window.location.pathname || '');
+  }
+
+  function usersMatchExact(a, b) {
+    return normalizeUser(a) === normalizeUser(b) && normalizeField(a).length === normalizeField(b).length;
   }
 
   function resolveUserForElement(el) {
@@ -815,7 +819,7 @@
         return;
       }
 
-      if (!isProfilePage || currentUser !== currentProfileUser) {
+      if (!isProfilePage || !usersMatchExact(currentUser, currentProfileUser)) {
         if (el.dataset.injectedFor) clearInjected(el);
         return;
       }
