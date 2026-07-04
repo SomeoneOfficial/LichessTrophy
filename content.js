@@ -332,14 +332,15 @@
       span.style.display = 'inline-flex';
       span.style.alignItems = 'center';
       span.style.justifyContent = 'center';
-      span.style.transformOrigin = 'center center';
-      span.style.marginLeft = '0';
-      span.style.marginRight = '0';
 
       const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
       const scale = Number.isFinite(trophy.scale) ? trophy.scale : 1;
-      span.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+      span.style.position = 'relative';
+      span.style.left = `${offsetX}px`;
+      span.style.top = `${offsetY}px`;
+      span.style.transformOrigin = 'center center';
+      span.style.transform = `scale(${scale})`;
 
       if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophy.url) || /^data:image\//i.test(trophy.url)) {
         const img = document.createElement('img');
