@@ -359,30 +359,35 @@
       if (!trophy.url) continue;
 
       const link = document.createElement('a');
-      link.href = trophy.href || player.clickHref || '/player/top/blitz';
+      link.href = trophy.clickUrl || trophy.href || player.clickHref || '/player/top/blitz';
       link.className = 'injected-trophy';
+      link.title = trophy.title || 'Top Blitz Player';
+      link.target = '_self';
+      link.rel = 'noreferrer';
+      link.style.display = 'inline-block';
+      link.style.cursor = 'pointer';
+      link.style.textDecoration = 'none';
 
       const span = document.createElement('span');
       span.className = trophy.className || 'trophy perf top1';
       span.title = trophy.title || 'Top Blitz Player';
       span.setAttribute('aria-label', trophy.title || 'Top Blitz Player');
-      span.style.display = 'inline-flex';
-      span.style.alignItems = 'center';
-      span.style.justifyContent = 'center';
+      span.style.display = 'inline-block';
+      span.style.verticalAlign = 'middle';
+      span.style.lineHeight = '0';
 
       const offsetX = Number.isFinite(trophy.offsetX) ? trophy.offsetX : 0;
       const offsetY = Number.isFinite(trophy.offsetY) ? trophy.offsetY : 0;
       const scale = Number.isFinite(trophy.scale) ? trophy.scale : 1;
       span.style.position = 'relative';
-      span.style.left = `${offsetX}px`;
-      span.style.top = `${offsetY}px`;
       span.style.transformOrigin = 'center center';
-      span.style.transform = `scale(${scale})`;
+      span.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 
       if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(trophy.url) || /^data:image\//i.test(trophy.url)) {
         const img = document.createElement('img');
         img.src = trophy.url;
         img.alt = trophy.title || 'Top Blitz Player';
+        img.title = trophy.title || 'Top Blitz Player';
         img.style.display = 'block';
         img.style.maxWidth = '18px';
         img.style.maxHeight = '18px';

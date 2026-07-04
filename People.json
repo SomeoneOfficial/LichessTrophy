@@ -12,9 +12,9 @@
         "title": "Original Creator Of LichessTrophy",
         "className": "trophy perf top1",
         "content": "Original Creator Of LichessTrophy",
-        "offsetY": -10,
-        "offsetX": 2,
-        "scale": 4
+        "offsetY": 2,
+        "offsetX": 0,
+        "scale": 1.15
       }
     ]
   }
