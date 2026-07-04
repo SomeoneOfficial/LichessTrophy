@@ -72,6 +72,30 @@
     return row[fallbackIndex] || '';
   }
 
+  function readFirstNonEmptyColumn(row, indexMap, keys, fallbackIndexes) {
+    if (indexMap) {
+      for (const key of keys) {
+        const normalized = String(key)
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '');
+        const index = indexMap.get(normalized);
+
+        if (index != null && row[index] != null && String(row[index]).trim() !== '') {
+          return row[index];
+        }
+      }
+    }
+
+    for (const index of fallbackIndexes) {
+      if (row[index] != null && String(row[index]).trim() !== '') {
+        return row[index];
+      }
+    }
+
+    return '';
+  }
+
   function escapeHtml(value) {
     return String(value)
       .replace(/&/g, '&amp;')
@@ -163,6 +187,10 @@
             const displayName = (readColumn(row, indexMap, ['displayname', 'display name'], 2) || '').trim();
             const flair = (readColumn(row, indexMap, ['flair'], 3) || '').trim();
             const trophiesUrl = (readColumn(row, indexMap, ['trophiesurl', 'trophies url', 'trophies'], 4) || '').trim();
+            const trophyHref = (readFirstNonEmptyColumn(row, indexMap, ['trophyhref', 'trophy href'], [5]) || '').trim();
+            const trophyTitle = (readFirstNonEmptyColumn(row, indexMap, ['trophytitle', 'trophy title'], [6]) || '').trim();
+            const trophyClass = (readFirstNonEmptyColumn(row, indexMap, ['trophyclass', 'trophy class'], [7]) || '').trim();
+            const trophyContent = (readFirstNonEmptyColumn(row, indexMap, ['trophycontent', 'trophy content'], [8]) || '').trim();
             const cleanTitle = !title || title.toLowerCase() === 'title' ? '' : title;
 
             return {
@@ -172,6 +200,10 @@
               displayName,
               flair,
               trophiesUrl,
+              trophyHref,
+              trophyTitle,
+              trophyClass,
+              trophyContent,
               badge: createBadge(cleanTitle)
             };
           })
@@ -205,6 +237,10 @@
                 const displayName = (readColumn(row, indexMap, ['displayname', 'display name'], 2) || '').trim();
                 const flair = (readColumn(row, indexMap, ['flair'], 3) || '').trim();
                 const trophiesUrl = (readColumn(row, indexMap, ['trophiesurl', 'trophies url', 'trophies'], 4) || '').trim();
+                const trophyHref = (readFirstNonEmptyColumn(row, indexMap, ['trophyhref', 'trophy href'], [5]) || '').trim();
+                const trophyTitle = (readFirstNonEmptyColumn(row, indexMap, ['trophytitle', 'trophy title'], [6]) || '').trim();
+                const trophyClass = (readFirstNonEmptyColumn(row, indexMap, ['trophyclass', 'trophy class'], [7]) || '').trim();
+                const trophyContent = (readFirstNonEmptyColumn(row, indexMap, ['trophycontent', 'trophy content'], [8]) || '').trim();
                 const cleanTitle = !title || title.toLowerCase() === 'title' ? '' : title;
 
                 return {
@@ -214,6 +250,10 @@
                   displayName,
                   flair,
                   trophiesUrl,
+                  trophyHref,
+                  trophyTitle,
+                  trophyClass,
+                  trophyContent,
                   badge: createBadge(cleanTitle)
                 };
               })
@@ -276,18 +316,26 @@
     return null;
   }
 
-  function setTrophies(el, trophiesUrl) {
+  function setTrophies(el, player) {
     const container = findTrophiesContainer(el);
     if (!container) return;
 
-    const signature = trophiesUrl || '';
+    const trophiesUrl = player.trophiesUrl || '';
+    const trophyHref = player.trophyHref || trophiesUrl;
+    const trophyTitle = player.trophyTitle || 'Custom Trophy';
+    const trophyClass = ['trophy', 'award', 'icon3d', player.trophyClass || 'injected-trophy']
+      .join(' ')
+      .trim();
+    const trophyContent = player.trophyContent || '';
+
+    const signature = [trophiesUrl, trophyHref, trophyTitle, trophyClass, trophyContent].join('\u0001');
     if (container.dataset.injectedTrophySig === signature) {
       return;
     }
 
     container.querySelectorAll('img.injected-trophy').forEach((img) => img.remove());
     container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
-    if (!trophiesUrl) {
+    if (!trophiesUrl && !trophyHref && !player.trophyContent) {
       delete container.dataset.injectedTrophySig;
       return;
     }
@@ -297,26 +345,42 @@
       .map((value) => value.trim())
       .filter(Boolean);
 
-    urls.forEach((url) => {
+    const hrefs = trophyHref
+      .split('|')
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const contents = trophyContent
+      .split('|')
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    const count = Math.max(urls.length, hrefs.length, contents.length, 1);
+
+    for (let index = 0; index < count; index += 1) {
+      const url = urls[index] || urls[0] || '';
+      const href = hrefs[index] || hrefs[0] || url || '#';
+      const content = contents[index] || contents[0] || '';
+
       const link = document.createElement('a');
-      link.className = 'trophy award icon3d injected-trophy';
-      link.href = url;
-      link.title = 'Custom Trophy';
+      link.className = trophyClass;
+      link.href = href;
+      link.title = trophyTitle;
       link.setAttribute('aria-label', 'Custom Trophy');
       link.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;margin-left:4px;vertical-align:middle;';
 
-      if (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url) || /^data:image\//i.test(url)) {
+      if (url && (/\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(url) || /^data:image\//i.test(url))) {
         const img = document.createElement('img');
         img.src = url;
         img.alt = 'Custom Trophy';
         img.style.cssText = 'display:block;max-height:18px;max-width:18px;';
         link.appendChild(img);
       } else {
-        link.textContent = '';
+        link.textContent = content;
       }
 
       container.appendChild(link);
-    });
+    }
 
     container.dataset.injectedTrophySig = signature;
   }
@@ -388,7 +452,7 @@
       }
 
       setFlair(el, player.flair);
-      setTrophies(el, player.trophiesUrl);
+      setTrophies(el, player);
 
       el.dataset.injectedFor = player.id;
       el.dataset.injectedSig = signature;
