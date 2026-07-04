@@ -1111,12 +1111,7 @@
   }
 
   function observe() {
-    const target = document.body || document.documentElement;
-    const obs = new MutationObserver(scheduleInject);
-    obs.observe(target, {
-      childList: true,
-      subtree: true
-    });
+    // Intentionally disabled: inject once on initial page load only.
   }
 
   function closeOnOutsideInteraction(event) {
@@ -1147,7 +1142,6 @@
     await loadData();
     await checkVersion();
     inject();
-    observe();
   }
 
   chrome.runtime.onMessage.addListener((message) => {
