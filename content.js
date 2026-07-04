@@ -1,8 +1,8 @@
   (function () {
   'use strict';
 
-  const PEOPLE_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/People.json';
-  const TEAMS_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/Teams.json';
+  const PEOPLE_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/People.json';
+  const TEAMS_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/refs/heads/main/Teams.json';
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
   const DEFAULT_SETTINGS = {
