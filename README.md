@@ -9,3 +9,6 @@ and then click developer mode on
 then load unpacked and then select the folder you unzipped! and you are done! message @ajisland on lichess for questions!
 
 Also if you want to host a tournament that has these types of awards message me on lichess too!
+
+
+This extension does not send any private data over the cloud! if you have doubts view the code.
