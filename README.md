@@ -8,6 +8,8 @@ then go to chrome://extensions/
 and then click developer mode on
 then load unpacked and then select the folder you unzipped! and you are done! message @ajisland on lichess for questions!
 
+<img width="1596" height="862" alt="image" src="https://github.com/user-attachments/assets/847c7ec9-7aef-460e-a1bf-6c17732b640b" />
+
 Also if you want to host a tournament that has these types of awards message me on lichess too!
 
 
