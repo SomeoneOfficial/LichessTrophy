@@ -1,7 +1,8 @@
-(function () {
+  (function () {
   'use strict';
 
-  const SUPABASE_CONFIG_URL = chrome.runtime.getURL('supabase/config.json');
+  const PEOPLE_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/People.json';
+  const TEAMS_JSON_URL = 'https://raw.githubusercontent.com/SomeoneOfficial/LichessTrophy/main/Teams.json';
   const DEFAULT_TROPHY_CONTENT = '\uE05E';
 
   const DEFAULT_SETTINGS = {
@@ -289,100 +290,37 @@
       .filter(Boolean);
   }
 
-  async function loadSupabaseConfig() {
-    try {
-      const response = await fetch(SUPABASE_CONFIG_URL, { cache: 'no-store' });
-      if (!response.ok) return null;
+  async function loadJsonSource(url, label) {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      mode: 'cors',
+      headers: {
+        Accept: 'application/json'
+      }
+    });
 
-      const config = await response.json();
-      if (!config || typeof config !== 'object') return null;
-
-      const baseUrl = normalizeField(config.baseUrl || config.url || config.supabaseUrl);
-      const anonKey = normalizeField(config.anonKey || config.publicAnonKey || config.key);
-      const tableName = normalizeField(config.tableName || config.table || 'files');
-
-      if (!baseUrl || !tableName) return null;
-      if (baseUrl.includes('YOUR_PROJECT') || tableName.includes('YOUR_')) return null;
-
-      return {
-        baseUrl: baseUrl.replace(/\/+$/, ''),
-        mode: normalizeField(config.mode || 'storage').toLowerCase(),
-        anonKey: anonKey.includes('YOUR_') ? '' : anonKey,
-        tableName
-      };
-    } catch (error) {
-      return null;
+    if (!response.ok) {
+      throw new Error(`${label} request failed with status ${response.status}`);
     }
-  }
 
-  function buildSupabaseTableUrl(config, tableName) {
-    if (!config) return '';
-    const table = normalizeField(tableName);
-    if (!table) return '';
-    return `${config.baseUrl}/rest/v1/${table}?select=*`;
-  }
-
-  function buildSupabaseHeaders(config) {
-    if (!config || !config.anonKey) return null;
-
-    return {
-      apikey: config.anonKey,
-      Authorization: `Bearer ${config.anonKey}`,
-      Accept: 'application/json'
-    };
-  }
-
-  function normalizeJsonPayload(row) {
-    const value = row && (row.data ?? row.payload ?? row.json ?? row.content);
-    if (typeof value === 'string') return value;
-    if (value == null) return '[]';
-    return JSON.stringify(value);
+    return response.text();
   }
 
   async function loadData() {
-    const supabaseConfig = await loadSupabaseConfig();
-    const useSupabase = supabaseConfig && supabaseConfig.mode === 'tables' && supabaseConfig.anonKey;
-    const headers = buildSupabaseHeaders(supabaseConfig);
-    if (useSupabase) {
-      const tableUrl = buildSupabaseTableUrl(supabaseConfig, supabaseConfig.tableName);
-
-      try {
-        const response = await fetch(tableUrl, {
-          cache: 'no-store',
-          mode: 'cors',
-          headers: headers || { Accept: 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error(`Supabase request failed with status ${response.status}`);
-        }
-
-        const rows = await response.json();
-        const rowMap = new Map(
-          Array.isArray(rows)
-            ? rows.map((row) => [normalizeField(row.file_name || row.filename || row.name || row.id).toLowerCase(), row])
-            : []
-        );
-
-        const peopleRow = rowMap.get('people.json') || rowMap.get('people');
-        const teamsRow = rowMap.get('teams.json') || rowMap.get('teams');
-
-        const peopleText = peopleRow ? normalizeJsonPayload(peopleRow) : '[]';
-        const teamsText = teamsRow ? normalizeJsonPayload(teamsRow) : '[]';
-
-        players = parsePlayers(peopleText);
-        teams = parseTeams(teamsText);
-        console.log('Loaded players:', players);
-        console.log('Loaded teams:', teams);
-        return;
-      } catch (error) {
-        console.error('Supabase load failed:', error);
-      }
+    try {
+      const [peopleText, teamsText] = await Promise.all([
+        loadJsonSource(PEOPLE_JSON_URL, 'People'),
+        loadJsonSource(TEAMS_JSON_URL, 'Teams')
+      ]);
+      players = parsePlayers(peopleText);
+      teams = parseTeams(teamsText);
+      console.log('Loaded players:', players);
+      console.log('Loaded teams:', teams);
+    } catch (error) {
+      console.error('GitHub JSON load failed:', error);
+      players = [];
+      teams = [];
     }
-
-    players = [];
-    teams = [];
-    console.warn('Supabase data is unavailable; no trophies or team badges loaded.');
   }
 
   function getPrimaryTextNode(el) {
