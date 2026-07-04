@@ -360,7 +360,7 @@
 
       const link = document.createElement('a');
       link.href = trophy.clickUrl || trophy.href || player.clickHref || '/player/top/blitz';
-      link.className = 'injected-trophy';
+      link.className = `${trophy.className || 'trophy perf top1'} injected-trophy`;
       link.title = trophy.title || 'Top Blitz Player';
       link.target = '_self';
       link.rel = 'noreferrer';
@@ -369,7 +369,7 @@
       link.style.textDecoration = 'none';
 
       const span = document.createElement('span');
-      span.className = trophy.className || 'trophy perf top1';
+      span.className = 'injected-trophy-inner';
       span.title = trophy.title || 'Top Blitz Player';
       span.setAttribute('aria-label', trophy.title || 'Top Blitz Player');
       span.style.display = 'inline-block';
@@ -416,7 +416,7 @@
 
     const container = findTrophiesContainer(el);
     if (container) {
-      container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
+    container.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
       delete container.dataset.injectedTrophySig;
     }
 
