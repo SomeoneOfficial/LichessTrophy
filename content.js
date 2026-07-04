@@ -582,6 +582,9 @@
   function setTeamBadges(header, team) {
     if (!header) return;
     header.style.overflow = 'visible';
+    if (header.parentElement) {
+      header.parentElement.style.overflow = 'visible';
+    }
 
     const badges = Array.isArray(team.badges) ? team.badges : [];
     const signature = team.badgeSig || badges
@@ -607,8 +610,9 @@
       return;
     }
 
+    const host = header.parentElement || header;
     const flair = header.querySelector('img.uflair');
-    let insertionPoint = flair || null;
+    let insertionPoint = flair || header;
 
     for (const badge of badges) {
       if (!badge.url) continue;
@@ -693,8 +697,10 @@
       link.appendChild(inner);
       if (insertionPoint && insertionPoint.parentNode === header) {
         insertionPoint.insertAdjacentElement('afterend', link);
+      } else if (insertionPoint === header && header.parentNode === host) {
+        header.insertAdjacentElement('afterend', link);
       } else {
-        header.appendChild(link);
+        host.appendChild(link);
       }
       insertionPoint = link;
     }
