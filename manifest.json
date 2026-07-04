@@ -16,6 +16,9 @@
     }
   },
   "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "host_permissions": [
     "https://raw.githubusercontent.com/*",
     "https://githubusercontent.com/*"

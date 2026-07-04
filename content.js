@@ -17,6 +17,7 @@
   let injectScheduled = false;
   let settings = { ...DEFAULT_SETTINGS };
   let panelRoot = null;
+  let panelVisible = false;
   let panelEls = {};
 
   function normalizeUser(value) {
@@ -423,6 +424,7 @@
     panelEls.flair.checked = !!settings.showFlair;
     panelEls.trophy.checked = !!settings.showTrophy;
     panelEls.body.classList.toggle('is-disabled', !settings.enabled);
+    panelRoot.style.display = panelVisible ? 'block' : 'none';
   }
 
   function createPanel() {
@@ -566,6 +568,14 @@
     syncPanel();
   }
 
+  function togglePanel() {
+    panelVisible = !panelVisible;
+    if (!panelRoot) {
+      createPanel();
+    }
+    syncPanel();
+  }
+
   function inject() {
     if (!players.length) return;
 
@@ -679,6 +689,12 @@
     inject();
     observe();
   }
+
+  chrome.runtime.onMessage.addListener((message) => {
+    if (message && message.type === 'toggle-panel') {
+      togglePanel();
+    }
+  });
 
   init();
 })();
