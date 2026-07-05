@@ -100,7 +100,7 @@
   }
 
   function usersMatchExact(a, b) {
-    return normalizeUser(a) === normalizeUser(b) && normalizeField(a).length === normalizeField(b).length;
+    return normalizeUser(a) === normalizeUser(b);
   }
 
   function resolveUserForElement(el) {
@@ -110,7 +110,8 @@
     const hrefUser = extractUserFromHref(el.getAttribute('href') || '');
     if (hrefUser) return hrefUser;
 
-    return normalizeUser(el.getAttribute('data-username'));
+    const dataUsername = normalizeUser(el.getAttribute('data-username'));
+    return dataUsername;
   }
 
   function escapeHtml(value) {
@@ -855,6 +856,13 @@
     delete header.dataset.injectedTeamSig;
   }
 
+  function clearAllInjectedTrophies() {
+    document.querySelectorAll('a.injected-trophy').forEach((link) => link.remove());
+    document.querySelectorAll('.trophies').forEach((container) => {
+      delete container.dataset.injectedTrophySig;
+    });
+  }
+
   function isVisibleElement(el) {
     if (!el) return false;
     if (!el.isConnected) return false;
@@ -864,8 +872,10 @@
 
   function pickPrimaryProfileElement(elements) {
     const visible = elements.filter((el) => isVisibleElement(el));
+    const headerMatch = visible.find((el) => el.closest('.box__top'));
+    const nonSideMatch = visible.find((el) => !el.closest('.side'));
     const sideMatch = visible.find((el) => el.closest('.side'));
-    return sideMatch || visible[0] || null;
+    return headerMatch || nonSideMatch || sideMatch || visible[0] || null;
   }
 
   function getPlayerSignature(player) {
@@ -1227,9 +1237,12 @@
       document.querySelectorAll('.user-link').forEach((el) => {
         if (el.dataset.injectedFor) clearInjected(el);
       });
+      clearAllInjectedTrophies();
       clearTeamInjected(getTeamHeader());
       return;
     }
+
+    clearAllInjectedTrophies();
 
     const playerElements = new Map();
     document.querySelectorAll('.user-link').forEach((el) => {
@@ -1253,9 +1266,18 @@
     });
 
     for (const { player, elements } of playerElements.values()) {
-      const primaryElement = pickPrimaryProfileElement(elements);
       for (const el of elements) {
-        applyPlayerToElement(el, player, el === primaryElement);
+        applyPlayerToElement(el, player, false);
+      }
+    }
+
+    const currentProfileUser = getCurrentProfileUser();
+    const currentPlayer = players.find((entry) => usersMatchExact(entry.id, currentProfileUser));
+    if (currentPlayer) {
+      const currentEntry = playerElements.get(currentPlayer.id);
+      const primaryElement = currentEntry ? pickPrimaryProfileElement(currentEntry.elements) : null;
+      if (primaryElement) {
+        setTrophies(primaryElement, currentPlayer);
       }
     }
 
