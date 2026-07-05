@@ -41,6 +41,27 @@
         "intensity": 80
       }
     ]
+  },
+  {
+    "username": "KKisland",
+    "displayName": "",
+    "flair": "",
+    "clickHref": "/player/top/blitz",
+    "trophies": [
+      {
+        "url": "https://github.com/SomeoneOfficial/LichessTrophy/blob/main/Badges/First20Users.png?raw=true",
+        "clickUrl": "https://github.com/SomeoneOfficial/LichessTrophy",
+        "title": "First 20 Users",
+        "className": "trophy award icon3d streamer",
+        "content": "First Users",
+        "offsetY": 0,
+        "offsetX": 8,
+        "scale": 4,
+        "glowEnabled": true,
+        "rgb": "rgb(251, 0, 255)",
+        "intensity": 40
+      }
+    ]
   }
 
 
