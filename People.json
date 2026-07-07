@@ -75,12 +75,12 @@
         "title": "1st MSTB Winner",
         "className": "trophy award icon3d streamer",
         "content": "1st MSTB Winner",
-        "offsetY": 0,
-        "offsetX": 8,
-        "scale": 4,
+        "offsetY": 5,
+        "offsetX": 0,
+        "scale": 6,
         "glowEnabled": true,
         "rgb": "rgb(255, 183, 0)",
-        "intensity": 20
+        "intensity": 10
       }
     ]
   }
