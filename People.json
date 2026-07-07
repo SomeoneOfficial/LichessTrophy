@@ -62,6 +62,27 @@
         "intensity": 40
       }
     ]
+  },
+  {
+    "username": "chessrocker2",
+    "displayName": "",
+    "flair": "",
+    "clickHref": "/player/top/blitz",
+    "trophies": [
+      {
+        "url": "https://github.com/SomeoneOfficial/LichessTrophy/blob/main/Badges/MSTBWinner.png?raw=true",
+        "clickUrl": "https://lichess.org/tournament/FOuVqxFv",
+        "title": "1st MSTB Winner",
+        "className": "trophy award icon3d streamer",
+        "content": "1st MSTB Winner",
+        "offsetY": 0,
+        "offsetX": 8,
+        "scale": 4,
+        "glowEnabled": true,
+        "rgb": "rgb(255, 183, 0)",
+        "intensity": 20
+      }
+    ]
   }
 
 
